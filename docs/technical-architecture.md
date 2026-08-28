@@ -1,0 +1,434 @@
+# TECHNICAL ARCHITECTURE
+## Sicatat — Sistem Informasi Pencatatan Penyaluran Bantuan Air Bersih
+
+| | |
+|---|---|
+| **Instansi** | BPBD Provinsi Gorontalo |
+| **Versi dokumen** | 1.0 |
+| **Acuan** | [`PRD.md`](PRD.md) — MVP 1.0 |
+| **Tahap** | Tahap 2 dari PRD bagian 14 |
+
+---
+
+## 1. Ringkasan Arsitektur
+
+Sicatat adalah aplikasi web **monolitik server-rendered** berbasis Laravel. Tidak ada aplikasi frontend terpisah dan tidak ada API publik — seluruh halaman dirender di server memakai Blade, dengan sedikit JavaScript (Alpine.js) untuk interaksi lokal seperti dropdown wilayah bertingkat.
+
+Pilihan ini diambil karena:
+
+- **Skala kecil dan internal.** Pengguna hanya staf BPBD Provinsi Gorontalo, bukan publik. Beban server rendah.
+- **Sederhana untuk dirawat.** Sesuai kebutuhan non-fungsional "Kemudahan Penggunaan" dan konteks proyek magang — satu codebase, satu proses deploy, tanpa build pipeline yang rumit.
+- **Cepat dikembangkan.** Fitur MVP didominasi CRUD, filter, agregasi, dan export — semuanya adalah kekuatan bawaan Laravel.
+
+```
+┌─────────────┐   HTTPS    ┌──────────────────────────────────────────┐
+│   Browser   │ ─────────► │            Laravel 13 (PHP 8.3)          │
+│  (Chrome /  │            │                                          │
+│   Edge)     │ ◄───────── │  Routes → Middleware → Controller        │
+└─────────────┘   HTML     │            ↓                             │
+      │                    │      Form Request (validasi)             │
+      │ Alpine.js          │            ↓                             │
+      │ (fetch JSON        │      Eloquent Model / Query Builder      │
+      │  wilayah)          │            ↓                             │
+      └──────────────────► │      Blade View / DomPDF / Excel         │
+                           └────────────────┬─────────────────────────┘
+                                            │ PDO
+                                            ▼
+                                   ┌──────────────────┐
+                                   │   MySQL 8.4      │
+                                   │   db: sicatat    │
+                                   └──────────────────┘
+```
+
+---
+
+## 2. Stack Teknologi
+
+Versi berikut sudah diverifikasi terpasang di mesin pengembangan (Laragon).
+
+| Lapisan | Teknologi | Versi | Keterangan |
+|---|---|---|---|
+| Bahasa | PHP | 8.3.33 | Ekstensi aktif: `pdo_mysql`, `mbstring`, `openssl`, `gd`, `intl`, `zip`, `xml` |
+| Framework | Laravel | 13.29 | Framework utama |
+| Database | MySQL | 8.4.3 | Charset `utf8mb4`, collation `utf8mb4_unicode_ci` |
+| Templating | Blade | bawaan Laravel | Seluruh halaman server-rendered |
+| CSS | Tailwind CSS | 4.x | Bawaan skeleton Laravel, di-bundle Vite |
+| Build tool | Vite | 8.x | `npm run dev` / `npm run build` |
+| JS interaksi | Alpine.js | 3.x | Dropdown bertingkat, konfirmasi hapus, toggle sidebar |
+| Grafik | Chart.js | 4.x | Grafik penyaluran per bulan (FR-21) |
+| Export PDF | `barryvdh/laravel-dompdf` | 3.x | Render Blade → PDF (FR-23) |
+| Export Excel | `maatwebsite/excel` | 3.x | Export `.xlsx` (FR-24) — lihat catatan §12 |
+| Web server (dev) | `php artisan serve` / Laragon Apache | — | |
+| Web server (prod) | Apache atau Nginx | — | Document root diarahkan ke `public/` |
+
+**Yang sengaja TIDAK dipakai:**
+
+- Livewire / Inertia / Vue / React — tidak diperlukan untuk cakupan MVP, menambah kompleksitas build.
+- Laravel Breeze / starter kit — sudah bukan jalur resmi di Laravel 13, dan sistem ini tidak butuh registrasi publik. Autentikasi dibuat manual (lihat §5).
+- Redis / queue worker — tidak ada pekerjaan asinkron di MVP. Export dijalankan sinkron.
+- Paket permission pihak ketiga (Spatie) — hanya ada 3 role tetap, cukup dengan kolom `role` dan middleware sendiri.
+
+---
+
+## 3. Struktur Folder
+
+```
+D:\Sites\Sicatat\
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Auth/LoginController.php
+│   │   │   ├── DashboardController.php
+│   │   │   ├── PenyaluranController.php
+│   │   │   ├── Wilayah/KabupatenController.php
+│   │   │   ├── Wilayah/KecamatanController.php
+│   │   │   ├── Wilayah/DesaController.php
+│   │   │   ├── InstansiController.php
+│   │   │   ├── PenggunaController.php
+│   │   │   ├── LaporanController.php
+│   │   │   └── WilayahOptionController.php   ← endpoint JSON dropdown bertingkat
+│   │   ├── Middleware/EnsureUserHasRole.php
+│   │   └── Requests/                          ← validasi tiap form
+│   ├── Models/
+│   │   ├── User.php
+│   │   ├── Kabupaten.php
+│   │   ├── Kecamatan.php
+│   │   ├── Desa.php
+│   │   ├── Instansi.php
+│   │   └── Penyaluran.php
+│   ├── Exports/PenyaluranExport.php           ← Maatwebsite Excel
+│   └── Support/RekapPenyaluran.php            ← kalkulasi ringkasan dashboard & laporan
+├── database/
+│   ├── migrations/
+│   └── seeders/
+│       ├── UserSeeder.php
+│       ├── WilayahSeeder.php
+│       └── InstansiSeeder.php
+├── docs/                                       ← dokumen proyek (folder ini)
+├── resources/
+│   ├── css/app.css
+│   ├── js/app.js
+│   └── views/
+│       ├── layouts/app.blade.php               ← sidebar + topbar
+│       ├── components/                         ← komponen Blade: stat-card, tabel, input
+│       ├── auth/login.blade.php
+│       ├── dashboard/index.blade.php
+│       ├── penyaluran/{index,create,edit,show}.blade.php
+│       ├── wilayah/{kabupaten,kecamatan,desa}/
+│       ├── instansi/
+│       ├── pengguna/
+│       └── laporan/{index,pdf}.blade.php
+└── routes/web.php
+```
+
+---
+
+## 4. Alur Request
+
+Contoh: Admin menyimpan data penyaluran baru.
+
+```
+POST /penyaluran
+   ↓
+middleware: web, auth, role:admin
+   ↓
+StorePenyaluranRequest        → validasi: tanggal wajib & tidak di masa depan,
+                                 desa_id ada, jumlah_kk ≥ 0, volume_liter ≥ 1, dst.
+   ↓
+PenyaluranController@store    → set user_id = pengguna yang login
+   ↓
+Penyaluran::create()          → INSERT ke tabel penyalurans
+   ↓
+redirect ke /penyaluran dengan flash message "Data penyaluran berhasil disimpan."
+```
+
+---
+
+## 5. Autentikasi & Otorisasi
+
+### 5.1 Autentikasi (FR-01)
+
+Dibuat manual, tanpa starter kit:
+
+- Halaman `GET /login` menampilkan form.
+- `POST /login` memakai `Auth::attempt()`. Sesuai PRD 8.1, pengguna boleh masuk dengan **email atau username** — controller mendeteksi apakah input mengandung `@`, lalu memilih kolom yang dipakai.
+- Password disimpan sebagai hash bcrypt (bawaan Laravel), tidak pernah disimpan dalam bentuk asli.
+- Rate limiting login: maksimal 5 percobaan gagal per menit per kombinasi IP + username.
+- Sesi diregenerasi setelah login berhasil untuk mencegah session fixation.
+- **Tidak ada halaman registrasi publik.** Akun hanya dibuat oleh Admin melalui menu Manajemen Pengguna (FR-03).
+
+### 5.2 Otorisasi (FR-02)
+
+Role disimpan sebagai kolom `role` di tabel `users` dengan tiga nilai tetap: `admin`, `petugas`, `pimpinan`.
+
+Middleware `EnsureUserHasRole` (alias `role`) dipasang per grup route:
+
+```php
+Route::middleware(['auth'])->group(function () {
+    // Semua role yang sudah login
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/penyaluran', [PenyaluranController::class, 'index']);
+    Route::get('/penyaluran/{penyaluran}', [PenyaluranController::class, 'show']);
+    Route::get('/laporan', [LaporanController::class, 'index']);
+    Route::get('/laporan/pdf', [LaporanController::class, 'pdf']);
+    Route::get('/laporan/excel', [LaporanController::class, 'excel']);
+
+    // Hanya admin
+    Route::middleware('role:admin')->group(function () {
+        Route::resource('penyaluran', PenyaluranController::class)->except(['index', 'show']);
+        Route::resource('wilayah/kabupaten', KabupatenController::class);
+        Route::resource('wilayah/kecamatan', KecamatanController::class);
+        Route::resource('wilayah/desa', DesaController::class);
+        Route::resource('instansi', InstansiController::class);
+        Route::resource('pengguna', PenggunaController::class);
+    });
+});
+```
+
+### 5.3 Matriks Hak Akses
+
+Diturunkan dari PRD bagian 9.
+
+| Menu / Aksi | Admin | Pimpinan | Petugas |
+|---|:---:|:---:|:---:|
+| Login | ✅ | ✅ | ✅ |
+| Dashboard | ✅ | ✅ | ✅ |
+| Riwayat penyaluran (lihat & filter) | ✅ | ✅ | ✅ |
+| Detail penyaluran | ✅ | ✅ | ✅ |
+| Tambah / ubah / hapus penyaluran | ✅ | ❌ | ❌ |
+| Laporan + export PDF & Excel | ✅ | ✅ | ✅ |
+| Data wilayah (CRUD) | ✅ | ❌ | ❌ |
+| Data instansi (CRUD) | ✅ | ❌ | ❌ |
+| Manajemen pengguna (CRUD) | ✅ | ❌ | ❌ |
+
+Menu di sidebar disembunyikan bila role tidak berhak, **dan** tetap dijaga di sisi route/middleware — menyembunyikan tautan saja bukan pengamanan.
+
+Sesuai PRD, role **Petugas** pada MVP belum punya kemampuan input; aksesnya sama dengan Pimpinan (baca saja). Kolom `role` sudah menyediakan tempatnya, sehingga menambah hak input di tahap berikutnya cukup mengubah middleware, bukan mengubah struktur data.
+
+---
+
+## 6. Peta Route
+
+| Method | URI | Controller | Role | FR |
+|---|---|---|---|---|
+| GET | `/` | redirect ke `/dashboard` atau `/login` | — | — |
+| GET | `/login` | `Auth\LoginController@create` | tamu | FR-01 |
+| POST | `/login` | `Auth\LoginController@store` | tamu | FR-01 |
+| POST | `/logout` | `Auth\LoginController@destroy` | auth | FR-01 |
+| GET | `/dashboard` | `DashboardController@index` | semua | FR-19, 20, 21 |
+| GET | `/penyaluran` | `PenyaluranController@index` | semua | FR-15, 16, 17, 18 |
+| GET | `/penyaluran/create` | `PenyaluranController@create` | admin | FR-08 |
+| POST | `/penyaluran` | `PenyaluranController@store` | admin | FR-08, 11–14 |
+| GET | `/penyaluran/{id}` | `PenyaluranController@show` | semua | FR-15 |
+| GET | `/penyaluran/{id}/edit` | `PenyaluranController@edit` | admin | FR-09 |
+| PUT | `/penyaluran/{id}` | `PenyaluranController@update` | admin | FR-09 |
+| DELETE | `/penyaluran/{id}` | `PenyaluranController@destroy` | admin | FR-10 |
+| GET | `/laporan` | `LaporanController@index` | semua | FR-22 |
+| GET | `/laporan/pdf` | `LaporanController@pdf` | semua | FR-23 |
+| GET | `/laporan/excel` | `LaporanController@excel` | semua | FR-24 |
+| resource | `/wilayah/kabupaten` | `Wilayah\KabupatenController` | admin | FR-04 |
+| resource | `/wilayah/kecamatan` | `Wilayah\KecamatanController` | admin | FR-05 |
+| resource | `/wilayah/desa` | `Wilayah\DesaController` | admin | FR-06 |
+| resource | `/instansi` | `InstansiController` | admin | FR-07 |
+| resource | `/pengguna` | `PenggunaController` | admin | FR-03 |
+| GET | `/options/kecamatan` | `WilayahOptionController@kecamatan` | auth | FR-17 |
+| GET | `/options/desa` | `WilayahOptionController@desa` | auth | FR-17 |
+
+---
+
+## 7. Dropdown Wilayah Bertingkat (PRD 8.3)
+
+Dua endpoint JSON internal dipakai oleh form input penyaluran dan panel filter. Keduanya berada di belakang middleware `auth` — bukan API publik.
+
+```
+GET /options/kecamatan?kabupaten_id=2   →  [{"id":14,"nama":"Pulubala"}, ...]
+GET /options/desa?kecamatan_id=14       →  [{"id":231,"nama":"Molyonegoro"}, ...]
+```
+
+Di sisi Blade, Alpine.js menangani perubahan pilihan:
+
+```html
+<div x-data="wilayahPicker()">
+    <select x-model="kabupatenId" @change="muatKecamatan()" name="kabupaten_id"> ... </select>
+
+    <select x-model="kecamatanId" @change="muatDesa()" name="kecamatan_id" :disabled="!kabupatenId">
+        <template x-for="k in kecamatans" :key="k.id">
+            <option :value="k.id" x-text="k.nama"></option>
+        </template>
+    </select>
+
+    <select x-model="desaId" name="desa_id" :disabled="!kecamatanId">
+        <template x-for="d in desas" :key="d.id">
+            <option :value="d.id" x-text="d.nama"></option>
+        </template>
+    </select>
+</div>
+```
+
+Saat form **edit**, komponen diinisialisasi dengan `kabupaten_id` dan `kecamatan_id` milik data yang sedang dibuka, lalu langsung memuat kedua daftar agar pilihan lama tampil benar.
+
+Pada **form penyaluran**, langkah ketiga bukan memilih satu desa melainkan **mencentang satu atau beberapa desa**, karena satu kegiatan dapat mencakup beberapa desa sekaligus. Desa yang sudah dicentang ditampilkan sebagai daftar terpilih, dan admin boleh berpindah kecamatan untuk menambah desa dari kecamatan lain tanpa kehilangan pilihan sebelumnya. Pada **panel filter**, langkah ketiga tetap pilihan tunggal.
+
+Catatan: hanya id desa yang benar-benar disimpan (lewat tabel `desa_penyaluran`). Kabupaten dan kecamatan diturunkan lewat relasi, sehingga tidak mungkin terjadi data lokasi yang tidak konsisten. Ini penting karena **61 nama desa di Provinsi Gorontalo tidak unik** — memilih desa dari nama saja akan ambigu.
+
+---
+
+## 8. Dashboard (PRD 8.2)
+
+Seluruh angka dihitung langsung lewat query agregasi, tanpa tabel ringkasan dan tanpa cache — jumlah baris pada skala kegiatan BPBD (ribuan per tahun) masih sangat ringan untuk MySQL.
+
+| Kartu / Panel | Sumber Data | FR |
+|---|---|---|
+| Total kegiatan penyaluran | `COUNT(*)` dari `penyalurans` | — |
+| Total volume air tersalur | `SUM(volume_liter)` | FR-19 |
+| Jumlah wilayah penerima | `COUNT(DISTINCT desa_id)` lewat `desa_penyaluran` | FR-20 |
+| Kegiatan bulan ini | `COUNT(*)` dengan filter bulan berjalan | — |
+| Grafik penyaluran per bulan | `SUM(volume_liter)` di-`GROUP BY` bulan, 12 bulan terakhir | FR-21 |
+| Wilayah paling sering menerima | `COUNT(*)` di-`GROUP BY desa_id` lewat `desa_penyaluran`, ambil 5 teratas | — |
+| Data penyaluran terbaru | 5 baris terakhir urut `tanggal` menurun | — |
+| Kelengkapan data | Berapa kegiatan yang belum mencantumkan KK atau jiwa | — |
+
+Kartu terakhir ada karena `jumlah_kk` dan `jumlah_jiwa` boleh kosong: angka total tetap ditampilkan, tetapi disertai keterangan berapa data yang belum lengkap, sehingga pembaca tahu totalnya belum mencakup semua kegiatan.
+
+Semua logika agregasi dikumpulkan di satu kelas `App\Support\RekapPenyaluran` agar dashboard dan laporan memakai perhitungan yang sama persis — tidak ada dua versi rumus yang bisa berbeda hasilnya.
+
+---
+
+## 9. Riwayat, Filter, dan Laporan
+
+### 9.1 Filter (PRD 8.7)
+
+Filter dikirim sebagai query string agar hasil pencarian bisa di-*bookmark* dan dibagikan:
+
+```
+/penyaluran?tanggal_mulai=2026-08-01&tanggal_akhir=2026-08-24
+           &kabupaten_id=2&kecamatan_id=14&desa_id=&instansi_id=3&user_id=&q=
+```
+
+Diterapkan sebagai Eloquent *local scope* pada model `Penyaluran`, sehingga potongan kode yang sama dipakai ulang oleh halaman riwayat, halaman laporan, export PDF, dan export Excel. Filter kabupaten dan kecamatan bekerja lewat `whereHas` ke relasi desa.
+
+### 9.2 Laporan & Export (PRD 8.8, 8.9)
+
+Halaman laporan memakai **filter yang sama** dengan halaman riwayat, lalu menampilkan blok ringkasan (periode, total air, jumlah wilayah, total KK, total jiwa) di atas tabel rincian.
+
+Kedua format export sengaja dibuat **berbeda bentuk**, karena kegunaannya memang berbeda.
+
+- **PDF (FR-23)** — `barryvdh/laravel-dompdf` merender view `laporan/pdf.blade.php`. View ini terpisah dari view web dan memakai CSS sederhana, karena DomPDF tidak mendukung Tailwind/Flexbox modern. Susunannya **meniru dokumen infografis yang selama ini dibuat kantor**: dikelompokkan per tanggal → kabupaten → kecamatan → desa, dengan "Total tersalur" pada tiap tanggal, lalu ditutup blok "Ringkasan Keseluruhan" berisi total liter dan sebaran per kabupaten (jumlah kecamatan dan desa). Tanpa kop surat resmi dan tanpa blok tanda tangan (lihat §12.1).
+- **Excel (FR-24)** — `maatwebsite/excel` mengekspor `.xlsx` berbentuk **tabel datar**, satu baris per kegiatan dengan kolom Tanggal, Kabupaten, Kecamatan, Desa, KK, Jiwa, Volume, Pelaksana, dan Penginput, ditambah baris total di bagian bawah. Bentuk ini siap diolah ulang dengan *pivot table*. Untuk kegiatan yang mencakup beberapa desa, nama-nama desanya digabung dalam satu sel dan diberi penanda bahwa angkanya adalah angka gabungan.
+
+Kedua export **mengalirkan filter yang sedang aktif**, sehingga isi berkas selalu sama dengan yang terlihat di layar.
+
+---
+
+## 10. Keamanan (Kebutuhan Non-Fungsional PRD 11)
+
+| Aspek | Penanganan |
+|---|---|
+| Autentikasi | Wajib login untuk seluruh halaman kecuali `/login` |
+| Password | Hash bcrypt bawaan Laravel; aturan minimal 8 karakter |
+| Brute force | `RateLimiter` 5 percobaan gagal per menit |
+| Otorisasi | Middleware `role` per grup route, bukan sekadar menyembunyikan menu |
+| CSRF | Token `@csrf` pada seluruh form (bawaan Laravel) |
+| XSS | Blade meng-escape output secara default; `{!! !!}` tidak dipakai untuk data pengguna |
+| SQL Injection | Seluruh query lewat Eloquent / query builder dengan parameter binding |
+| Session | Regenerasi ID saat login, invalidasi saat logout |
+| Kredensial | Kredensial database dan `APP_KEY` hanya di `.env`, tidak ikut ke repositori |
+| Penghapusan data | `penyalurans` memakai *soft delete* — data yang dihapus admin masih bisa dipulihkan dari database bila terjadi kesalahan |
+
+---
+
+## 11. Responsif (Kebutuhan Non-Fungsional PRD 11)
+
+Target: laptop, desktop, dan tablet.
+
+- Layout utama: sidebar tetap pada layar ≥ `lg`, berubah menjadi menu geser (*drawer*) pada layar lebih kecil.
+- Tabel riwayat dibungkus kontainer `overflow-x-auto` agar tidak merusak lebar halaman pada tablet.
+- Form input memakai satu kolom pada layar sempit dan dua kolom pada layar lebar.
+- Grafik Chart.js diatur `responsive: true` dengan rasio aspek tetap.
+
+---
+
+## 12. Keputusan
+
+### 12.1 Sudah Ditetapkan
+
+| # | Isu | Keputusan |
+|---|---|---|
+| 1 | **Arti field "Petugas"** — PRD 8.5 menyebut "petugas yang menginput", sedangkan filter 8.7 hanya menyebut "Petugas". | Dipakai sebagai **pengguna sistem yang menginput data**, terisi otomatis dari akun yang sedang login (`penyalurans.user_id`). Admin tidak perlu mengisi apa pun. Tidak ada tabel master petugas lapangan di MVP. |
+| 2 | **Sumber data wilayah** | Diambil dari ekspor **PENTAGON** "Jumlah Penduduk Berdasarkan Jenis Kelamin" yang memuat daftar wilayah beserta kode resminya. Sudah diolah menjadi `database/data/wilayah-gorontalo.csv` dan dimuat `WilayahSeeder`: **6 kabupaten/kota, 77 kecamatan, 729 desa/kelurahan**. |
+| 3 | **Satu kegiatan dapat mencakup beberapa desa** — laporan asli kerap menulis satu angka gabungan untuk beberapa desa sekaligus. | Relasi desa ↔ penyaluran dibuat **banyak-ke-banyak**. Angka KK, jiwa, dan volume berlaku untuk seluruh desa pada kegiatan tersebut, ditandai sebagai *angka gabungan*, dan dibagi rata bila dibutuhkan rekap per desa. |
+| 4 | **Satu kegiatan dapat dikerjakan beberapa instansi** — mis. BPBD Provinsi, Polsek, dan PDAM bersama-sama. | Relasi instansi ↔ penyaluran dibuat **banyak-ke-banyak**, dipilih dengan centang pada form. Filter dan rekap per instansi tetap berfungsi. |
+| 5 | **Kelengkapan KK dan jiwa** — banyak entri laporan hanya mencantumkan volume air. | `jumlah_kk` dan `jumlah_jiwa` **boleh kosong**; `volume_liter` tetap wajib. Dashboard menampilkan total dari data yang terisi disertai penanda berapa data yang belum lengkap. |
+| 6 | **Bentuk laporan dan export** | **PDF** meniru dokumen infografis kantor (per tanggal → kabupaten → kecamatan → desa, dengan total harian dan Ringkasan Keseluruhan). **Excel** berbentuk tabel datar siap *pivot*. Tanpa kop surat resmi dan tanpa blok tanda tangan. |
+
+### 12.2 Masih Terbuka
+
+| # | Isu | Asumsi sementara yang dipakai | Dampak bila berubah |
+|---|---|---|---|
+| 1 | **Kompatibilitas `maatwebsite/excel` dengan Laravel 13** — perlu diverifikasi saat instalasi. | Bila belum kompatibel, export memakai `openspout/openspout` langsung (menghasilkan `.xlsx` yang sama) atau CSV sebagai cadangan terakhir. | Kecil — hanya menyentuh kelas `PenyaluranExport`. |
+| 2 | **Duplikat penyaluran** — bolehkah satu desa menerima dua kegiatan pada tanggal yang sama. | Diperbolehkan; data nyata memang menunjukkannya. Sistem hanya menampilkan peringatan, tanpa batasan `UNIQUE` di database. | Sedang — bila harus dilarang, perlu menambah *unique constraint*. |
+| 3 | **Penerima yang bukan desa** — laporan 25 Agustus 2026 mencatat "SMAN 1 Suwawa Timur" sebagai penerima. | Dicatat pada kolom Keterangan, dengan desa tetap dipilih sebagai lokasi wilayahnya. | Kecil — bila perlu difilter, tambahkan kolom "titik penyaluran". |
+| 4 | **Data armada/kendaraan** — laporan asli memuat bagian "Armada tersedia" dan "Kendala yang dihadapi". | Di luar cakupan MVP sesuai PRD bagian 5. Tidak dicatat sistem. | Besar — perlu tabel dan menu baru. |
+
+---
+
+## 13. Setup Pengembangan
+
+```bash
+# 1. Dependensi PHP
+composer install
+
+# 2. Environment
+cp .env.example .env
+php artisan key:generate
+
+# 3. Database (MySQL sudah berjalan lewat Laragon)
+#    .env → DB_CONNECTION=mysql, DB_DATABASE=sicatat, DB_USERNAME=root, DB_PASSWORD=
+php artisan migrate --seed
+
+# 4. Aset frontend
+npm install
+npm run dev        # mode pengembangan
+npm run build      # untuk produksi
+
+# 5. Jalankan
+php artisan serve  # http://localhost:8000
+```
+
+Akun awal dari `UserSeeder` (wajib diganti sebelum dipakai sungguhan):
+
+| Role | Username | Password |
+|---|---|---|
+| Admin | `admin` | `password` |
+| Pimpinan | `pimpinan` | `password` |
+
+---
+
+## 14. Deployment
+
+Target: server internal instansi atau VPS, dengan Apache/Nginx + PHP-FPM 8.3 + MySQL 8.
+
+Langkah pokok:
+
+1. Salin kode ke server, arahkan *document root* ke folder `public/`.
+2. `composer install --no-dev --optimize-autoloader`
+3. Isi `.env` produksi: `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` sesuai domain, kredensial database server.
+4. `php artisan key:generate` (sekali saja), lalu `php artisan migrate --force`.
+5. `npm ci && npm run build`, lalu unggah folder `public/build`.
+6. `php artisan config:cache route:cache view:cache`.
+7. Pastikan folder `storage/` dan `bootstrap/cache/` dapat ditulis oleh proses web server.
+8. Jadwalkan backup database harian (`mysqldump`) — ini satu-satunya salinan data penyaluran.
+
+---
+
+## 15. Rencana Implementasi Bertahap
+
+| Fase | Lingkup | FR yang dipenuhi |
+|---|---|---|
+| **1** | Setup project, migrasi, model, autentikasi, role, layout dasar | FR-01, FR-02 |
+| **2** | Master data: pengguna, wilayah (kab/kec/desa), instansi | FR-03 – FR-07 |
+| **3** | Modul penyaluran: CRUD, riwayat, pencarian, filter | FR-08 – FR-18 |
+| **4** | Dashboard: kartu statistik dan grafik bulanan | FR-19 – FR-21 |
+| **5** | Laporan, export PDF, export Excel | FR-22 – FR-24 |
+
+Setiap fase diperiksa dan disetujui sebelum lanjut ke fase berikutnya.
