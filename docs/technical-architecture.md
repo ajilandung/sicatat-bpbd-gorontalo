@@ -78,17 +78,23 @@ D:\Sites\Sicatat\
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── Auth/LoginController.php
+│   │   │   ├── Auth/PasswordController.php    ← ubah password sendiri
 │   │   │   ├── DashboardController.php
 │   │   │   ├── PenyaluranController.php
 │   │   │   ├── Wilayah/KabupatenController.php
 │   │   │   ├── Wilayah/KecamatanController.php
 │   │   │   ├── Wilayah/DesaController.php
 │   │   │   ├── InstansiController.php
-│   │   │   ├── PenggunaController.php
+│   │   │   ├── Pengguna/PenggunaController.php
+│   │   │   ├── Pengguna/ResetPasswordController.php
 │   │   │   ├── LaporanController.php
 │   │   │   └── WilayahOptionController.php   ← endpoint JSON dropdown bertingkat
-│   │   ├── Middleware/EnsureUserHasRole.php
+│   │   ├── Middleware/
+│   │   │   ├── EnsureUserHasRole.php           ← alias `role:`
+│   │   │   ├── PastikanAkunAktif.php           ← alias `aktif`
+│   │   │   └── PastikanPasswordSudahDiganti.php ← alias `ganti-password`
 │   │   └── Requests/                          ← validasi tiap form
+│   ├── Policies/UserPolicy.php                ← aturan yang bergantung objek
 │   ├── Models/
 │   │   ├── User.php
 │   │   ├── Kabupaten.php
@@ -110,13 +116,14 @@ D:\Sites\Sicatat\
 │   ├── js/app.js
 │   └── views/
 │       ├── layouts/app.blade.php               ← sidebar + topbar
-│       ├── components/                         ← komponen Blade: stat-card, tabel, input
-│       ├── auth/login.blade.php
-│       ├── dashboard/index.blade.php
+│       ├── layouts/fokus.blade.php             ← layar tanpa navigasi (ganti password wajib)
+│       ├── components/ui/                      ← input, pilihan, password, tombol, lencana, notifikasi, konfirmasi
+│       ├── auth/{login,ubah-password}.blade.php
+│       ├── dashboard/{admin,petugas,pimpinan}.blade.php
 │       ├── penyaluran/{index,create,edit,show}.blade.php
 │       ├── wilayah/{kabupaten,kecamatan,desa}/
 │       ├── instansi/
-│       ├── pengguna/
+│       ├── pengguna/{index,create,edit,show,reset-password}.blade.php
 │       └── laporan/{index,pdf}.blade.php
 └── routes/web.php
 ```
@@ -155,7 +162,11 @@ Dibuat manual, tanpa starter kit:
 - Password disimpan sebagai hash bcrypt (bawaan Laravel), tidak pernah disimpan dalam bentuk asli.
 - Rate limiting login: maksimal 5 percobaan gagal per menit per kombinasi IP + username.
 - Sesi diregenerasi setelah login berhasil untuk mencegah session fixation.
-- **Tidak ada halaman registrasi publik.** Akun hanya dibuat oleh Admin melalui menu Manajemen Pengguna (FR-03).
+- **Tidak ada halaman registrasi publik.** Akun hanya dibuat oleh Admin melalui menu Manajemen Pengguna (FR-03). Halaman login juga tidak menyediakan login pihak ketiga (Google, Facebook, dan sejenisnya).
+- Akun nonaktif ditolak saat login. Bila akun dinonaktifkan ketika sesinya sedang berjalan, middleware `PastikanAkunAktif` memutus sesi itu pada permintaan berikutnya.
+- Waktu login terakhir dicatat di `users.last_login_at` tanpa menyentuh `updated_at`, supaya jejak perubahan data pengguna tidak tertimpa aktivitas login.
+- **Password sementara.** Akun yang baru dibuat dan akun yang direset admin ditandai `harus_ganti_password = true`. Middleware `PastikanPasswordSudahDiganti` mengunci pengguna di halaman `Ubah Password` — hanya halaman itu dan logout yang tetap terbuka — sampai password baru dibuat. Dengan begitu administrator tidak pernah mengetahui password akhir milik pengguna.
+- **Tidak ada reset password lewat email pada MVP.** Halaman login mengarahkan pengguna yang lupa password untuk menghubungi administrator, yang kemudian memakai aksi *Reset Password* pada Manajemen Pengguna.
 
 ### 5.2 Otorisasi (FR-02)
 
@@ -192,18 +203,25 @@ Diturunkan dari PRD bagian 9.
 | Menu / Aksi | Admin | Pimpinan | Petugas |
 |---|:---:|:---:|:---:|
 | Login | ✅ | ✅ | ✅ |
-| Dashboard | ✅ | ✅ | ✅ |
+| Dashboard sesuai role | ✅ | ✅ | ✅ |
+| Ubah password sendiri | ✅ | ✅ | ✅ |
 | Riwayat penyaluran (lihat & filter) | ✅ | ✅ | ✅ |
 | Detail penyaluran | ✅ | ✅ | ✅ |
 | Tambah / ubah / hapus penyaluran | ✅ | ❌ | ❌ |
 | Laporan + export PDF & Excel | ✅ | ✅ | ✅ |
 | Data wilayah (CRUD) | ✅ | ❌ | ❌ |
 | Data instansi (CRUD) | ✅ | ❌ | ❌ |
-| Manajemen pengguna (CRUD) | ✅ | ❌ | ❌ |
+| Manajemen pengguna (lihat, tambah, ubah) | ✅ | ❌ | ❌ |
+| Aktifkan / nonaktifkan akun | ✅ | ❌ | ❌ |
+| Reset password pengguna lain | ✅ | ❌ | ❌ |
 
 Menu di sidebar disembunyikan bila role tidak berhak, **dan** tetap dijaga di sisi route/middleware — menyembunyikan tautan saja bukan pengamanan.
 
 Sesuai PRD, role **Petugas** pada MVP belum punya kemampuan input; aksesnya sama dengan Pimpinan (baca saja). Kolom `role` sudah menyediakan tempatnya, sehingga menambah hak input di tahap berikutnya cukup mengubah middleware, bukan mengubah struktur data.
+
+Setiap role punya halaman dashboard sendiri (`/dashboard/admin`, `/dashboard/petugas`, `/dashboard/pimpinan`) yang masing-masing dijaga middleware `role:`. URL `/dashboard` hanya pintu masuk yang mengalihkan pengguna ke dashboard miliknya.
+
+Dua aturan otorisasi bergantung pada objek, bukan sekadar role, sehingga ditangani `UserPolicy`: admin tidak dapat menonaktifkan, menurunkan role, maupun mereset password akunnya sendiri. Tanpa penjagaan itu, admin terakhir bisa mengunci dirinya di luar sistem.
 
 ---
 
@@ -215,7 +233,12 @@ Sesuai PRD, role **Petugas** pada MVP belum punya kemampuan input; aksesnya sama
 | GET | `/login` | `Auth\LoginController@create` | tamu | FR-01 |
 | POST | `/login` | `Auth\LoginController@store` | tamu | FR-01 |
 | POST | `/logout` | `Auth\LoginController@destroy` | auth | FR-01 |
-| GET | `/dashboard` | `DashboardController@index` | semua | FR-19, 20, 21 |
+| GET | `/dashboard` | `DashboardController@index` — alihkan ke dashboard sesuai role | semua | FR-02 |
+| GET | `/dashboard/admin` | `DashboardController@admin` | admin | FR-19, 20, 21 |
+| GET | `/dashboard/petugas` | `DashboardController@petugas` | petugas | FR-19, 20, 21 |
+| GET | `/dashboard/pimpinan` | `DashboardController@pimpinan` | pimpinan | FR-19, 20, 21 |
+| GET | `/ubah-password` | `Auth\PasswordController@edit` | auth | FR-01 |
+| PUT | `/ubah-password` | `Auth\PasswordController@update` | auth | FR-01 |
 | GET | `/penyaluran` | `PenyaluranController@index` | semua | FR-15, 16, 17, 18 |
 | GET | `/penyaluran/create` | `PenyaluranController@create` | admin | FR-08 |
 | POST | `/penyaluran` | `PenyaluranController@store` | admin | FR-08, 11–14 |
@@ -230,7 +253,10 @@ Sesuai PRD, role **Petugas** pada MVP belum punya kemampuan input; aksesnya sama
 | resource | `/wilayah/kecamatan` | `Wilayah\KecamatanController` | admin | FR-05 |
 | resource | `/wilayah/desa` | `Wilayah\DesaController` | admin | FR-06 |
 | resource | `/instansi` | `InstansiController` | admin | FR-07 |
-| resource | `/pengguna` | `PenggunaController` | admin | FR-03 |
+| resource | `/pengguna` (kecuali `destroy`) | `Pengguna\PenggunaController` | admin | FR-03 |
+| PATCH | `/pengguna/{id}/status` | `Pengguna\PenggunaController@ubahStatus` | admin | FR-03 |
+| GET | `/pengguna/{id}/reset-password` | `Pengguna\ResetPasswordController@edit` | admin | FR-03 |
+| PUT | `/pengguna/{id}/reset-password` | `Pengguna\ResetPasswordController@update` | admin | FR-03 |
 | GET | `/options/kecamatan` | `WilayahOptionController@kecamatan` | auth | FR-17 |
 | GET | `/options/desa` | `WilayahOptionController@desa` | auth | FR-17 |
 
@@ -337,7 +363,56 @@ Kedua export **mengalirkan filter yang sedang aktif**, sehingga isi berkas selal
 
 ---
 
-## 11. Responsif (Kebutuhan Non-Fungsional PRD 11)
+## 11. Antarmuka (Kebutuhan Non-Fungsional PRD 11)
+
+### 11.1 Design System Visual
+
+Warna didefinisikan sekali sebagai token Tailwind pada `resources/css/app.css` (blok `@theme`),
+bukan ditulis berulang di tiap view. Menambah atau mengubah warna cukup dilakukan di satu berkas
+itu, dan seluruh aplikasi ikut berubah.
+
+| Token | Skala | Arti | Dipakai untuk |
+|---|---|---|---|
+| `brand` | `50`–`900`, inti `#ea580c` | Oranye BPBD — identitas lembaga | Logo, tombol utama, penanda menu aktif, cincin fokus, garis aksen |
+| `air` | `50`–`900`, inti `#0ea5e9` | Biru — air dan sistem | Panel informasi, ikon data, lencana pemberitahuan |
+| `navy` | `50`–`950`, inti `#142639` | Navy — profesionalitas | Sidebar, panel identitas halaman login, judul dan teks utama |
+| `slate` (bawaan) | — | Netral | Latar halaman, teks penunjang, garis pembatas; putih untuk permukaan kartu |
+
+Warna status memakai palet bawaan Tailwind — `emerald` (berhasil), `amber` (peringatan),
+`red` (galat) — supaya maknanya langsung terbaca tanpa menambah jumlah warna identitas.
+
+**Aturan pemakaian.** Oranye dipakai sebagai aksen, bukan sebagai latar halaman: satu tombol
+utama per layar, satu batang oranye pada menu yang sedang aktif, satu garis aksen pada kartu
+sambutan dan panel login. Sisanya dibiarkan putih, abu terang, dan navy.
+
+**Kontras (WCAG AA).** Teks putih di atas oranye hanya dipakai mulai `brand-700` (5,3:1);
+`brand-500`/`600` disediakan untuk elemen grafis, garis, dan cincin fokus yang cukup memenuhi
+ambang 3:1. Tautan beraksen memakai `brand-700` di atas latar terang. Sidebar `navy-900`
+dengan teks `navy-200` berada di atas 7:1. Menu aktif tidak memakai blok oranye penuh —
+kombinasi latar `navy-800`, batang `brand-500` di tepi kiri, dan ikon `brand-400` memberi
+penanda yang jelas tanpa menurunkan kontras teks.
+
+Komponen Blade di `resources/views/components/ui/` adalah tempat token itu diterapkan, sehingga
+halaman baru tidak perlu menyalin kelas warna atau ukuran:
+
+| Komponen | Kegunaan |
+|---|---|
+| `x-ui.kepala-halaman` | Judul halaman, deskripsi, tautan kembali, dan tombol aksi |
+| `x-ui.kartu` | Permukaan putih dengan kepala, badan, dan kaki opsional |
+| `x-ui.kartu-statistik` | Kartu angka pada dashboard |
+| `x-ui.kolom` | Satu kolom formulir: label, kendali, petunjuk, pesan galat |
+| `x-ui.input`, `x-ui.pilihan`, `x-ui.password` | Kendali formulir setinggi 44px dengan status galat |
+| `x-ui.tombol`, `x-ui.tombol-ikon` | Tombol dengan varian dan ukuran tetap |
+| `x-ui.notifikasi`, `x-ui.ringkasan-galat` | Pesan status dan ringkasan kesalahan validasi |
+| `x-ui.lencana`, `x-ui.lencana-role`, `x-ui.avatar` | Penanda status, peran, dan identitas |
+| `x-ui.konfirmasi`, `x-ui.kosong` | Dialog konfirmasi dan tampilan data kosong |
+
+Aturan antarmuka lain yang dipegang: satu halaman punya satu `<h1>` di badan halaman (topbar
+hanya menampilkan penanda posisi), tinggi kendali formulir dan tombol pada satu baris selalu
+sama, setiap elemen yang dapat difokus punya cincin fokus yang terlihat, dan tabel yang lebar
+diganti daftar kartu di bawah lebar `md`.
+
+### 11.2 Responsif
 
 Target: laptop, desktop, dan tablet.
 
@@ -397,10 +472,13 @@ php artisan serve  # http://localhost:8000
 
 Akun awal dari `UserSeeder` (wajib diganti sebelum dipakai sungguhan):
 
-| Role | Username | Password |
+| Role | Username | Password sementara |
 |---|---|---|
 | Admin | `admin` | `password` |
 | Pimpinan | `pimpinan` | `password` |
+| Petugas | `petugas` | `password` |
+
+Ketiganya dibuat sebagai password sementara: pada login pertama sistem langsung meminta password baru.
 
 ---
 
@@ -425,8 +503,8 @@ Langkah pokok:
 
 | Fase | Lingkup | FR yang dipenuhi |
 |---|---|---|
-| **1** | Setup project, migrasi, model, autentikasi, role, layout dasar | FR-01, FR-02 |
-| **2** | Master data: pengguna, wilayah (kab/kec/desa), instansi | FR-03 – FR-07 |
+| **1** | Setup project, migrasi, model, autentikasi, role, manajemen pengguna, layout dasar | FR-01, FR-02, FR-03 |
+| **2** | Master data: wilayah (kab/kec/desa), instansi | FR-04 – FR-07 |
 | **3** | Modul penyaluran: CRUD, riwayat, pencarian, filter | FR-08 – FR-18 |
 | **4** | Dashboard: kartu statistik dan grafik bulanan | FR-19 – FR-21 |
 | **5** | Laporan, export PDF, export Excel | FR-22 – FR-24 |

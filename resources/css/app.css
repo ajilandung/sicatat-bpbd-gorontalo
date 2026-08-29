@@ -4,12 +4,84 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/*
+| ─────────────────────────────────────────────────────────────────────────────
+| Design system Sicatat — BPBD Provinsi Gorontalo
+| ─────────────────────────────────────────────────────────────────────────────
+|
+| Tiga warna identitas, dipakai dengan porsi yang tetap di seluruh aplikasi:
+|
+|   brand (oranye)  identitas BPBD. Porsi kecil dan disengaja: logo, tombol
+|                   utama, penanda menu aktif, cincin fokus, garis aksen.
+|   air   (biru)    air dan sistem. Untuk panel informasi, ikon data, dan
+|                   lencana yang bersifat memberi tahu, bukan mengajak.
+|   navy            profesionalitas dan keterbacaan: sidebar, panel identitas,
+|                   dan judul.
+|   slate           latar serta teks penunjang; putih untuk permukaan kartu.
+|
+| Aturan kontras yang dipegang:
+|   - Teks putih di atas oranye memakai `brand-700` ke atas (5,3:1 — lolos AA).
+|     `brand-500`/`600` hanya untuk elemen grafis, garis, dan cincin fokus.
+|   - Tautan dan teks beraksen memakai `brand-700` di atas latar terang.
+|   - Sidebar `navy-900` dengan teks `navy-200`/putih (7:1 ke atas).
+|
+| Warna status (emerald, amber, red) tetap memakai palet bawaan Tailwind
+| supaya maknanya langsung terbaca dan jumlah warna tidak membengkak.
+*/
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Oranye BPBD — warna identitas, dipakai seperlunya */
+    --color-brand-50: #fff7ed;
+    --color-brand-100: #ffedd5;
+    --color-brand-200: #fed7aa;
+    --color-brand-300: #fdba74;
+    --color-brand-400: #fb923c;
+    --color-brand-500: #f97316;
+    --color-brand-600: #ea580c;
+    --color-brand-700: #c2410c;
+    --color-brand-800: #9a3412;
+    --color-brand-900: #7c2d12;
+
+    /* Biru air — warna sekunder untuk informasi dan data */
+    --color-air-50: #f0f9ff;
+    --color-air-100: #e0f2fe;
+    --color-air-200: #bae6fd;
+    --color-air-300: #7dd3fc;
+    --color-air-400: #38bdf8;
+    --color-air-500: #0ea5e9;
+    --color-air-600: #0284c7;
+    --color-air-700: #0369a1;
+    --color-air-800: #075985;
+    --color-air-900: #0c4a6e;
+
+    /* Bayangan bernuansa navy — kedalaman tipis tanpa gradient */
+    --shadow-kartu: 0 1px 2px rgb(20 38 57 / 0.04), 0 1px 3px rgb(20 38 57 / 0.06);
+    --shadow-naik: 0 4px 6px -2px rgb(20 38 57 / 0.05), 0 12px 24px -6px rgb(20 38 57 / 0.12);
+    --shadow-panel: 0 1px 2px rgb(20 38 57 / 0.04), 0 8px 24px -12px rgb(20 38 57 / 0.18);
+
+    /* Navy — navigasi, panel gelap, dan judul */
+    --color-navy-50: #f2f6fa;
+    --color-navy-100: #e3ebf4;
+    --color-navy-200: #c3d5e8;
+    --color-navy-300: #97b4d3;
+    --color-navy-400: #648fb8;
+    --color-navy-500: #42709d;
+    --color-navy-600: #325a83;
+    --color-navy-700: #29486a;
+    --color-navy-800: #1d3450;
+    --color-navy-900: #142639;
+    --color-navy-950: #0b1826;
 }
 
 /* Elemen Alpine yang belum diinisialisasi jangan sempat terlihat. */
 [x-cloak] {
     display: none !important;
+}
+
+/* Cincin fokus keyboard memakai warna identitas di seluruh aplikasi. */
+:focus-visible {
+    outline-color: var(--color-brand-500);
 }

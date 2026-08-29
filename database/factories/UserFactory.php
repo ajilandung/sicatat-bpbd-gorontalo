@@ -32,6 +32,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'role' => User::ROLE_PETUGAS,
             'aktif' => true,
+            'harus_ganti_password' => false,
             'remember_token' => Str::random(10),
         ];
     }
@@ -40,6 +41,13 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => User::ROLE_ADMIN,
+        ]);
+    }
+
+    public function petugas(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_PETUGAS,
         ]);
     }
 
@@ -54,6 +62,16 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'aktif' => false,
+        ]);
+    }
+
+    /**
+     * Akun yang masih memakai password sementara dari admin.
+     */
+    public function wajibGantiPassword(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'harus_ganti_password' => true,
         ]);
     }
 

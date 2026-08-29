@@ -23,7 +23,13 @@ class LoginController extends Controller
         // Cegah session fixation.
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard'));
+        $user = $request->user();
+
+        // Dicatat tanpa menyentuh kolom updated_at supaya jejak perubahan data
+        // pengguna tidak tertimpa oleh aktivitas login.
+        $user->forceFill(['last_login_at' => now()])->saveQuietly();
+
+        return redirect()->intended(route($user->routeDashboard()));
     }
 
     public function destroy(Request $request): RedirectResponse

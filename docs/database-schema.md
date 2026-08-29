@@ -116,6 +116,8 @@ erDiagram
         string   password    "hash bcrypt"
         enum     role        "admin | petugas | pimpinan"
         boolean  aktif
+        boolean  harus_ganti_password
+        datetime last_login_at
         datetime created_at
         datetime updated_at
     }
@@ -164,12 +166,16 @@ Memenuhi FR-01, FR-02, FR-03. Tabel bawaan Laravel yang ditambah kolom `username
 | `password` | `varchar(255)` | ✗ | — | Hash bcrypt, tidak pernah disimpan polos |
 | `role` | `enum('admin','petugas','pimpinan')` | ✗ | `'petugas'` | Menentukan hak akses (FR-02) |
 | `aktif` | `boolean` | ✗ | `true` | Menonaktifkan akun tanpa menghapusnya |
+| `harus_ganti_password` | `boolean` | ✗ | `false` | Penanda password sementara dari admin; pengguna dipaksa menggantinya saat login |
+| `last_login_at` | `timestamp` | ✓ | `NULL` | Waktu login terakhir, ditampilkan pada Manajemen Pengguna |
 | `remember_token` | `varchar(100)` | ✓ | `NULL` | Bawaan Laravel |
 | `created_at` / `updated_at` | `timestamp` | ✓ | `NULL` | |
 
 **Index:** `username` (unique), `email` (unique), `role`.
 
-Akun yang sudah pernah menginput data tidak dihapus permanen — cukup diset `aktif = false`, agar jejak penginput setiap data tetap utuh. Akun nonaktif juga ditolak saat login.
+Akun yang sudah pernah menginput data tidak dihapus permanen — cukup diset `aktif = false`, agar jejak penginput setiap data tetap utuh. Akun nonaktif ditolak saat login, dan bila akun dinonaktifkan ketika sesinya masih berjalan, permintaan berikutnya langsung memutus sesi tersebut.
+
+Admin tidak pernah mengetahui password akhir milik pengguna: akun baru dan akun yang direset dibuat dengan password sementara (`harus_ganti_password = true`), lalu pengguna wajib menggantinya sendiri pada login berikutnya.
 
 ---
 
@@ -348,6 +354,7 @@ Urutan migrasi mengikuti arah ketergantungan foreign key:
 | 7 | `2026_08_28_100006_create_penyalurans_table` | FK → `users` |
 | 8 | `2026_08_28_100007_create_desa_penyaluran_table` | FK → `penyalurans`, `desas` |
 | 9 | `2026_08_28_100008_create_instansi_penyaluran_table` | FK → `penyalurans`, `instansis` |
+| 10 | `2026_08_29_100001_add_auth_fields_to_users_table` | Tambah `harus_ganti_password`, `last_login_at` |
 
 Contoh migrasi tabel inti:
 
@@ -402,7 +409,7 @@ $penyaluran->volumePerDesa();  // volume dibagi rata ke desa penerima
 
 | Seeder | Isi | Sumber |
 |---|---|---|
-| `UserSeeder` | 1 akun Admin, 1 akun Pimpinan | Data awal, password wajib diganti |
+| `UserSeeder` | 1 akun Admin, 1 akun Pimpinan, 1 akun Petugas | Data awal, semuanya berpassword sementara dan wajib diganti saat login pertama |
 | `WilayahSeeder` | 6 kab/kota, 77 kecamatan, 729 desa/kelurahan | `database/data/wilayah-gorontalo.csv`, hasil olahan ekspor PENTAGON |
 | `InstansiSeeder` | 16 instansi pelaksana | Nama yang benar-benar muncul di dokumen operasional Agustus 2026 |
 
