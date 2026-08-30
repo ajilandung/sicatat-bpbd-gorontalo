@@ -52,15 +52,34 @@
     Lompat ke konten
 </a>
 
-<div x-data="{ sidebarTerbuka: false }" class="min-h-full">
+{{--
+    `layarKecil` dipantau lewat matchMedia, bukan sekadar kelas `lg:`, karena
+    sidebar yang tertutup hanya digeser keluar layar dan tetap ada di DOM.
+    Tanpa penanda ini, pengguna papan ketik di layar kecil akan menekan Tab dan
+    masuk ke menu yang tidak terlihat olehnya.
+--}}
+<div x-data="{
+        sidebarTerbuka: false,
+        layarKecil: window.matchMedia('(max-width: 63.99rem)').matches,
+        tutupSidebar() {
+            if (! this.sidebarTerbuka) return;
+            this.sidebarTerbuka = false;
+            this.$refs.tombolBukaSidebar?.focus();
+        },
+     }"
+     x-init="window.matchMedia('(max-width: 63.99rem)')
+                .addEventListener('change', e => layarKecil = e.matches)"
+     @keydown.escape.window="tutupSidebar()"
+     class="min-h-full">
 
     {{-- Latar gelap saat sidebar terbuka di layar kecil --}}
-    <div x-show="sidebarTerbuka" x-transition.opacity @click="sidebarTerbuka = false"
+    <div x-show="sidebarTerbuka" x-transition.opacity @click="tutupSidebar()"
          class="fixed inset-0 z-30 bg-navy-950/60 lg:hidden" x-cloak></div>
 
     {{-- ── Sidebar ── --}}
     <aside class="fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-navy-900 transition-transform duration-200 lg:w-64 lg:translate-x-0"
-           :class="sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'">
+           :class="sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'"
+           x-effect="$el.inert = layarKecil && ! sidebarTerbuka">
 
         <div class="flex items-center gap-3 border-b border-white/5 px-5 py-5">
             <x-ui.logo ukuran="size-10"/>
@@ -69,9 +88,9 @@
                 <p class="truncate text-xs text-navy-300">BPBD Provinsi Gorontalo</p>
             </div>
 
-            <button type="button" @click="sidebarTerbuka = false"
+            <button type="button" x-ref="tombolTutupSidebar" @click="tutupSidebar()"
                     class="-mr-1 rounded-lg p-1.5 text-navy-300 transition-colors hover:bg-white/5 hover:text-white
-                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden">
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500 lg:hidden">
                 <x-ikon nama="silang" class="size-5"/>
                 <span class="sr-only">Tutup menu</span>
             </button>
@@ -95,12 +114,12 @@
                                     @php $aktif = request()->routeIs($item['aktifJika'] ?? $item['route']); @endphp
                                     <a href="{{ route($item['route']) }}" @if ($aktif) aria-current="page" @endif
                                        class="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
-                                              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900
+                                              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900
                                               {{ $aktif
-                                                    ? "bg-navy-800 text-white before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-brand-500 before:content-['']"
+                                                    ? "bg-navy-800 text-white before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-air-400 before:content-['']"
                                                     : 'text-navy-200 hover:bg-navy-800/70 hover:text-white' }}">
                                         <x-ikon :nama="$item['ikon']"
-                                                class="size-5 shrink-0 {{ $aktif ? 'text-brand-400' : 'text-navy-300' }}"/>
+                                                class="size-5 shrink-0 {{ $aktif ? 'text-air-400' : 'text-navy-300' }}"/>
                                         {{ $item['label'] }}
                                     </a>
                                 @else
@@ -123,7 +142,7 @@
         {{-- Identitas peran: pengguna selalu tahu ia sedang masuk sebagai apa. --}}
         <div class="border-t border-white/5 p-3">
             <div class="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2.5">
-                <x-ui.avatar :nama="$user->name" ukuran="sm" warna="brand"/>
+                <x-ui.avatar :nama="$user->name" ukuran="sm" warna="navy"/>
                 <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium text-white">{{ $user->name }}</p>
                     <p class="truncate text-xs text-navy-300">{{ $user->labelRole() }}</p>
@@ -135,9 +154,10 @@
     {{-- ── Konten ── --}}
     <div class="lg:pl-64">
         <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
-            <button type="button" @click="sidebarTerbuka = true"
+            <button type="button" x-ref="tombolBukaSidebar"
+                    @click="sidebarTerbuka = true; $nextTick(() => $refs.tombolTutupSidebar.focus())"
                     class="-ml-1 rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-navy-900
-                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden">
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500 lg:hidden">
                 <x-ikon nama="menu" class="size-6"/>
                 <span class="sr-only">Buka menu</span>
             </button>
@@ -149,12 +169,13 @@
                 <span class="text-navy-800">@yield('judul', 'Dashboard')</span>
             </p>
 
-            <div x-data="{ buka: false }" class="relative">
-                <button type="button" @click="buka = ! buka" @click.outside="buka = false"
+            <div x-data="{ buka: false }" class="relative"
+                 @keydown.escape="buka = false; $refs.tombolAkun.focus()">
+                <button type="button" x-ref="tombolAkun" @click="buka = ! buka" @click.outside="buka = false"
                         :aria-expanded="buka.toString()" aria-haspopup="true"
                         class="flex items-center gap-2.5 rounded-lg py-1.5 pl-1.5 pr-2 transition-colors hover:bg-slate-100
-                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-                    <x-ui.avatar :nama="$user->name" ukuran="sm" warna="brand"/>
+                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500">
+                    <x-ui.avatar :nama="$user->name" ukuran="sm" warna="navy"/>
                     <span class="hidden text-left sm:block">
                         <span class="block text-sm font-medium leading-tight text-navy-900">{{ $user->name }}</span>
                         <span class="block text-xs leading-tight text-slate-500">{{ $user->labelRole() }}</span>

@@ -9,20 +9,27 @@
 | Design system Sicatat — BPBD Provinsi Gorontalo
 | ─────────────────────────────────────────────────────────────────────────────
 |
-| Tiga warna identitas, dipakai dengan porsi yang tetap di seluruh aplikasi:
+| Dua keluarga warna saja, dipakai dengan porsi yang tetap di seluruh aplikasi:
 |
-|   brand (oranye)  identitas BPBD. Porsi kecil dan disengaja: logo, tombol
-|                   utama, penanda menu aktif, cincin fokus, garis aksen.
-|   air   (biru)    air dan sistem. Untuk panel informasi, ikon data, dan
-|                   lencana yang bersifat memberi tahu, bukan mengajak.
-|   navy            profesionalitas dan keterbacaan: sidebar, panel identitas,
-|                   dan judul.
-|   slate           latar serta teks penunjang; putih untuk permukaan kartu.
+|   air (biru)  warna primer sekaligus aksen. Logo, tombol utama, tautan,
+|               penanda menu aktif, cincin fokus, garis aksen, dan panel
+|               informasi. Air adalah layanan yang dicatat sistem ini.
+|   navy        profesionalitas dan keterbacaan: sidebar, panel identitas,
+|               judul, serta tint pembeda yang perlu dibedakan dari `air`
+|               (misalnya lencana dan avatar peran Admin).
+|   slate       latar serta teks penunjang; putih untuk permukaan kartu.
+|
+| Oranye pernah menjadi warna aksen di sini dan sudah dihapus seluruhnya atas
+| permintaan pemilik proyek. Jangan menghidupkannya kembali sebagai warna
+| antarmuka; oranye yang tersisa di aplikasi hanya boleh berupa isi foto atau
+| video dokumentasi kegiatan, bukan warna yang kita pilih.
 |
 | Aturan kontras yang dipegang:
-|   - Teks putih di atas oranye memakai `brand-700` ke atas (5,3:1 — lolos AA).
-|     `brand-500`/`600` hanya untuk elemen grafis, garis, dan cincin fokus.
-|   - Tautan dan teks beraksen memakai `brand-700` di atas latar terang.
+|   - Teks putih di atas biru memakai `air-700` ke atas (5,9:1 — lolos AA).
+|     `air-500`/`600` hanya untuk elemen grafis, garis, dan cincin fokus.
+|   - Tautan dan teks beraksen memakai `air-700` di atas latar terang.
+|   - Di atas latar navy, aksen dinaikkan ke `air-400`/`air-500` supaya tetap
+|     terbaca; `air-600` ke atas terlalu dekat dengan navy dan tenggelam.
 |   - Sidebar `navy-900` dengan teks `navy-200`/putih (7:1 ke atas).
 |
 | Warna status (emerald, amber, red) tetap memakai palet bawaan Tailwind
@@ -33,19 +40,7 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* Oranye BPBD — warna identitas, dipakai seperlunya */
-    --color-brand-50: #fff7ed;
-    --color-brand-100: #ffedd5;
-    --color-brand-200: #fed7aa;
-    --color-brand-300: #fdba74;
-    --color-brand-400: #fb923c;
-    --color-brand-500: #f97316;
-    --color-brand-600: #ea580c;
-    --color-brand-700: #c2410c;
-    --color-brand-800: #9a3412;
-    --color-brand-900: #7c2d12;
-
-    /* Biru air — warna sekunder untuk informasi dan data */
+    /* Biru air — warna primer sekaligus aksen */
     --color-air-50: #f0f9ff;
     --color-air-100: #e0f2fe;
     --color-air-200: #bae6fd;
@@ -83,5 +78,119 @@
 
 /* Cincin fokus keyboard memakai warna identitas di seluruh aplikasi. */
 :focus-visible {
-    outline-color: var(--color-brand-500);
+    outline-color: var(--color-air-500);
+}
+
+/*
+| ─────────────────────────────────────────────────────────────────────────────
+| Video latar panel identitas halaman login
+| ─────────────────────────────────────────────────────────────────────────────
+|
+| Video di sini berperan sebagai suasana, bukan tontonan. Karena itu ia masuk
+| dengan pudar setelah frame pertama siap agar tidak menyentak, digeser sangat
+| lambat supaya panel terasa hidup tanpa menarik mata dari form, dan warnanya
+| dinaikkan sedikit agar tidak terlihat pucat di balik tirai navy.
+|
+| Bagi pengguna yang meminta animasi dikurangi, gerakannya dihentikan penuh.
+| Skrip di halaman login bahkan tidak mengunduh videonya sama sekali; aturan di
+| bawah hanya pengaman lapis kedua.
+*/
+.video-latar {
+    opacity: 0;
+    filter: saturate(1.08) contrast(1.05) brightness(0.95);
+    transform: scale(1.06);
+    animation: video-latar-hanyut 60s ease-in-out infinite alternate;
+    transition: opacity 1.2s ease-out;
+}
+
+/* Ditandai oleh skrip begitu frame pertama benar-benar siap digambar. */
+.video-latar[data-siap] {
+    opacity: 1;
+}
+
+@keyframes video-latar-hanyut {
+    from {
+        transform: scale(1.06) translate3d(0, 0, 0);
+    }
+    to {
+        transform: scale(1.13) translate3d(-1.5%, -1%, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .video-latar {
+        animation: none;
+        transition: none;
+    }
+}
+
+/*
+| Tirai di atas video latar login.
+|
+| Videonya bukan stok pemandangan, melainkan dokumentasi penyaluran yang
+| sesungguhnya — mobil tangki berlogo BPBD, petugas berseragam, warga mengantre
+| dengan wadah. Menutupinya dengan veil rata yang pekat akan menghapus satu-
+| satunya alasan video itu dipasang.
+|
+| Karena itu tirainya berarah, bukan rata: pekat di sisi kiri tempat seluruh
+| teks panel berdiri, lalu menipis ke kanan supaya gambarnya terbaca. Sisi kanan
+| yang menipis sampai 0,50 tidak memuat teks apa pun; yang ada di sana hanya
+| tombol jeda, dan tombol itu membawa latarnya sendiri.
+|
+| Angkanya bukan selera. Nilai di bawah diuji dengan mencuplik 30 frame dari
+| rekaman yang dipakai, memotongnya persis seperti `object-cover` pada panel
+| 998x1080, lalu mencari kontras terburuk di seluruh area teks. Hasilnya —
+| latar terburuk yang pernah muncul adalah #2f3c46:
+|
+|     judul putih             11,32:1
+|     navy-200 uraian & poin   7,55:1
+|     air-300 ikon centang     6,79:1
+|     air-400 label            5,28:1
+|     navy-300 catatan kaki    5,27:1
+|
+| Kelimanya di atas ambang WCAG AA 4,5:1. Yang paling tipis marginnya adalah
+| `navy-300` dan `air-400` yang praktis seri, jadi bila suatu saat tirai ini
+| dibuat lebih terang atau videonya diganti dengan rekaman yang lebih benderang,
+| catatan kaki dan label itulah yang pertama jatuh dan pengukurannya perlu
+| diulang.
+*/
+.tirai-video {
+    background-image: linear-gradient(
+        to right,
+        rgb(11 24 38 / 0.88) 0%,
+        rgb(11 24 38 / 0.86) 60%,
+        rgb(11 24 38 / 0.72) 80%,
+        rgb(11 24 38 / 0.5) 100%
+    );
+}
+
+/*
+| Tombol jeda video latar login.
+|
+| Disembunyikan sejak awal dan baru ditampilkan oleh skrip halaman login ketika
+| videonya benar-benar jadi diputar — pada layar kecil atau saat pengguna
+| meminta animasi dikurangi, video tidak pernah dimuat sehingga kendali ini pun
+| tidak perlu ada. Pemilih memakai atribut agar selalu menang atas kelas utilitas
+| tata letak yang menempel pada tombol yang sama.
+*/
+.kendali-video {
+    display: none;
+}
+
+.kendali-video[data-aktif] {
+    display: inline-flex;
+}
+
+/*
+| Kendali yang bisa diklik memakai kursor telunjuk.
+|
+| Peramban memberi <button> kursor panah, sama seperti teks biasa, sehingga
+| tombol tidak terbaca sebagai sesuatu yang bisa ditekan. Ditulis sebagai
+| pemilih elemen agar spesifisitasnya tetap di bawah utilitas Tailwind —
+| `disabled:cursor-not-allowed` pada komponen tombol tetap menang.
+*/
+button,
+[type='checkbox'],
+[type='radio'] {
+    cursor: pointer;
 }

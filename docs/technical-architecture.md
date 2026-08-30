@@ -373,24 +373,31 @@ itu, dan seluruh aplikasi ikut berubah.
 
 | Token | Skala | Arti | Dipakai untuk |
 |---|---|---|---|
-| `brand` | `50`–`900`, inti `#ea580c` | Oranye BPBD — identitas lembaga | Logo, tombol utama, penanda menu aktif, cincin fokus, garis aksen |
-| `air` | `50`–`900`, inti `#0ea5e9` | Biru — air dan sistem | Panel informasi, ikon data, lencana pemberitahuan |
-| `navy` | `50`–`950`, inti `#142639` | Navy — profesionalitas | Sidebar, panel identitas halaman login, judul dan teks utama |
+| `air` | `50`–`900`, inti `#0ea5e9` | Biru — warna primer sekaligus aksen | Logo, tombol utama, tautan, penanda menu aktif, cincin fokus, garis aksen, panel informasi |
+| `navy` | `50`–`950`, inti `#142639` | Navy — profesionalitas | Sidebar, panel identitas halaman login, judul dan teks utama, tint pembeda peran Admin |
 | `slate` (bawaan) | — | Netral | Latar halaman, teks penunjang, garis pembatas; putih untuk permukaan kartu |
 
 Warna status memakai palet bawaan Tailwind — `emerald` (berhasil), `amber` (peringatan),
 `red` (galat) — supaya maknanya langsung terbaca tanpa menambah jumlah warna identitas.
 
-**Aturan pemakaian.** Oranye dipakai sebagai aksen, bukan sebagai latar halaman: satu tombol
-utama per layar, satu batang oranye pada menu yang sedang aktif, satu garis aksen pada kartu
-sambutan dan panel login. Sisanya dibiarkan putih, abu terang, dan navy.
+Token `brand` (oranye BPBD) pernah menjadi warna aksen di sini dan **sudah dihapus seluruhnya**
+atas permintaan pemilik proyek. Oranye tidak lagi dipakai sebagai warna antarmuka; yang tersisa
+di aplikasi hanya oranye sebagai isi foto dan video dokumentasi kegiatan, bukan warna yang
+dipilih oleh design system.
 
-**Kontras (WCAG AA).** Teks putih di atas oranye hanya dipakai mulai `brand-700` (5,3:1);
-`brand-500`/`600` disediakan untuk elemen grafis, garis, dan cincin fokus yang cukup memenuhi
-ambang 3:1. Tautan beraksen memakai `brand-700` di atas latar terang. Sidebar `navy-900`
-dengan teks `navy-200` berada di atas 7:1. Menu aktif tidak memakai blok oranye penuh —
-kombinasi latar `navy-800`, batang `brand-500` di tepi kiri, dan ikon `brand-400` memberi
-penanda yang jelas tanpa menurunkan kontras teks.
+**Aturan pemakaian.** Biru dipakai sebagai aksen, bukan sebagai latar halaman: satu tombol
+utama per layar, satu batang biru pada menu yang sedang aktif, satu garis aksen pada kartu
+sambutan dan panel login. Sisanya dibiarkan putih, abu terang, dan navy. Ketika sebuah tint
+harus dibedakan dari `air` — misalnya lencana dan avatar peran Admin di sebelah peran Pimpinan
+yang memakai tint `air` — pembedanya diambil dari `navy`, bukan dari warna baru.
+
+**Kontras (WCAG AA).** Teks putih di atas biru hanya dipakai mulai `air-700` (5,9:1);
+`air-500`/`600` disediakan untuk elemen grafis, garis, dan cincin fokus yang cukup memenuhi
+ambang 3:1. Tautan beraksen memakai `air-700` di atas latar terang. Di atas latar navy, aksen
+dinaikkan ke `air-400`/`air-500` karena `air-600` ke atas terlalu dekat dengan navy dan
+tenggelam. Sidebar `navy-900` dengan teks `navy-200` berada di atas 7:1. Menu aktif tidak
+memakai blok biru penuh — kombinasi latar `navy-800`, batang `air-400` di tepi kiri, dan ikon
+`air-400` memberi penanda yang jelas tanpa menurunkan kontras teks.
 
 Komponen Blade di `resources/views/components/ui/` adalah tempat token itu diterapkan, sehingga
 halaman baru tidak perlu menyalin kelas warna atau ukuran:

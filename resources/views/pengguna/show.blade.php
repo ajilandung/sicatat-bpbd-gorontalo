@@ -13,7 +13,7 @@
         <x-ui.kartu padat>
             <div class="flex flex-wrap items-center gap-4 border-b border-slate-100 px-5 py-5 sm:px-6">
                 <x-ui.avatar :nama="$pengguna->name" ukuran="lg"
-                             :warna="$pengguna->isAdmin() ? 'brand' : 'netral'"/>
+                             :warna="$pengguna->isAdmin() ? 'navy' : 'netral'"/>
 
                 <div class="min-w-0 flex-1">
                     <h2 class="truncate text-lg font-semibold text-navy-900">{{ $pengguna->name }}</h2>

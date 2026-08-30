@@ -23,7 +23,7 @@
     <h2 class="mt-8 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Pengguna Sistem</h2>
 
     <div class="mt-3 grid gap-4 sm:grid-cols-2">
-        <x-ui.kartu-statistik label="Total akun terdaftar" :nilai="$jumlahPengguna" ikon="users" warna="brand"
+        <x-ui.kartu-statistik label="Total akun terdaftar" :nilai="$jumlahPengguna" ikon="users" warna="navy"
                               :href="route('pengguna.index')">
             Kelola pengguna
         </x-ui.kartu-statistik>

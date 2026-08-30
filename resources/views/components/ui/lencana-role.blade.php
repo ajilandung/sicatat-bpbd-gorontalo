@@ -5,7 +5,7 @@
 
     // Warna peran dipetakan sekali di sini supaya sama di tabel, detail, dan topbar.
     [$gaya, $ikon] = match ($role) {
-        User::ROLE_ADMIN => ['bg-brand-50 text-brand-800 ring-brand-600/25', 'perisai'],
+        User::ROLE_ADMIN => ['bg-navy-100 text-navy-800 ring-navy-700/25', 'perisai'],
         User::ROLE_PIMPINAN => ['bg-air-50 text-air-800 ring-air-600/20', 'mata'],
         default => ['bg-slate-100 text-slate-700 ring-slate-500/20', 'users'],
     };

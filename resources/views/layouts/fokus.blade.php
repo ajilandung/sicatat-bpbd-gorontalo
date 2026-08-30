@@ -15,7 +15,7 @@
     lebih dahulu — misalnya mengganti password sementara pada login pertama.
 --}}
 <div class="flex min-h-full flex-col">
-    <header class="border-b-2 border-brand-600 bg-navy-900">
+    <header class="border-b-2 border-air-500 bg-navy-900">
         <div class="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
             <div class="flex items-center gap-3">
                 <x-ui.logo ukuran="size-10"/>
@@ -29,7 +29,7 @@
                 @csrf
                 <button type="submit"
                         class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-navy-200 transition-colors
-                               hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                               hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500">
                     <x-ikon nama="keluar" class="size-4"/>
                     Keluar
                 </button>

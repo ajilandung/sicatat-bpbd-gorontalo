@@ -12,13 +12,13 @@
         default => 'h-10 px-4 text-sm',
     };
 
-    // Teks putih di atas oranye baru lolos kontras AA mulai brand-700.
+    // Teks putih di atas biru baru lolos kontras AA mulai air-700 (5,9:1).
     $gaya = match ($varian) {
         'sekunder' => 'border border-slate-300 bg-white text-navy-800 shadow-kartu hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-navy-400',
         'bahaya' => 'bg-red-600 text-white shadow-kartu hover:bg-red-700 focus-visible:ring-red-500',
         'halus' => 'text-slate-600 hover:bg-slate-100 hover:text-navy-900 focus-visible:ring-navy-400',
-        'tautan' => 'h-auto px-0 text-brand-700 underline-offset-4 hover:text-brand-800 hover:underline focus-visible:ring-brand-500',
-        default => 'bg-brand-700 text-white shadow-kartu hover:bg-brand-800 focus-visible:ring-brand-500',
+        'tautan' => 'h-auto px-0 text-air-700 underline-offset-4 hover:text-air-800 hover:underline focus-visible:ring-air-500',
+        default => 'bg-air-700 text-white shadow-kartu hover:bg-air-800 focus-visible:ring-air-500',
     };
 @endphp
 

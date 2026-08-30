@@ -14,7 +14,7 @@
 
     $gaya = match ($varian) {
         'bahaya' => 'border-slate-200 bg-white text-slate-500 hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus-visible:ring-red-500',
-        'aksen' => 'border-slate-200 bg-white text-slate-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 focus-visible:ring-brand-500',
+        'aksen' => 'border-slate-200 bg-white text-slate-500 hover:border-air-300 hover:bg-air-50 hover:text-air-700 focus-visible:ring-air-500',
         default => 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-navy-900 focus-visible:ring-navy-400',
     };
 @endphp

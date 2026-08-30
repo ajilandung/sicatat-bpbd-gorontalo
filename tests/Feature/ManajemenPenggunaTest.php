@@ -62,6 +62,44 @@ class ManajemenPenggunaTest extends TestCase
             ->assertSee('Rahmat Hasan');
     }
 
+    public function test_dialog_konfirmasi_punya_nama_yang_terbaca_dan_id_unik(): void
+    {
+        // Satu halaman daftar memuat banyak dialog sekaligus — satu per baris,
+        // dikali dua karena ada tampilan tabel dan tampilan kartu. Bila id-nya
+        // bertabrakan, aria-labelledby menunjuk judul milik baris lain dan
+        // pembaca layar mengumumkan konfirmasi untuk pengguna yang keliru.
+        User::factory()->count(3)->create();
+
+        $halaman = $this->actingAs($this->admin())->get('/pengguna')->assertOk();
+
+        $isi = $halaman->getContent();
+
+        preg_match_all('/aria-labelledby="(konfirmasi-[^"]+)"/', $isi, $cocok);
+
+        $this->assertNotEmpty($cocok[1], 'Dialog konfirmasi tidak memiliki aria-labelledby.');
+        $this->assertSame(
+            count($cocok[1]),
+            count(array_unique($cocok[1])),
+            'Ada id dialog konfirmasi yang dipakai lebih dari sekali.'
+        );
+
+        // Setiap nama yang dirujuk harus benar-benar ada sebagai id di halaman.
+        foreach ($cocok[1] as $id) {
+            $this->assertStringContainsString('id="'.$id.'"', $isi);
+        }
+    }
+
+    public function test_sidebar_dikeluarkan_dari_urutan_tab_saat_tertutup_di_layar_kecil(): void
+    {
+        // Sidebar yang tertutup hanya digeser keluar layar dan tetap ada di DOM,
+        // jadi tanpa penanda ini pengguna papan ketik di layar kecil bisa masuk
+        // ke menu yang tidak terlihat olehnya.
+        $this->actingAs($this->admin())
+            ->get('/pengguna')
+            ->assertOk()
+            ->assertSee('x-effect="$el.inert = layarKecil', false);
+    }
+
     public function test_daftar_pengguna_dapat_dicari_dan_difilter(): void
     {
         User::factory()->create(['name' => 'Rahmat Hasan', 'username' => 'rahmat']);

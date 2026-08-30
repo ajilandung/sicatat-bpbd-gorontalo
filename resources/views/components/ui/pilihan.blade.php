@@ -4,7 +4,7 @@
     $galat = $errors->has($nama);
 
     $kelas = 'block h-11 w-full rounded-lg border-slate-300 py-0 text-sm text-navy-900 shadow-kartu transition-colors
-              focus:border-brand-500 focus:ring-1 focus:ring-brand-500
+              focus:border-air-500 focus:ring-1 focus:ring-air-500
               disabled:bg-slate-100 disabled:text-slate-500'
         .($galat ? ' border-red-400 focus:border-red-500 focus:ring-red-500' : '');
 @endphp

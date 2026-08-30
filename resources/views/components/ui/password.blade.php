@@ -4,7 +4,7 @@
     $galat = $errors->has($nama);
 
     $kelas = 'block h-11 w-full rounded-lg border-slate-300 pl-10 pr-11 text-sm text-navy-900 shadow-kartu transition-colors
-              placeholder:text-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500'
+              placeholder:text-slate-400 focus:border-air-500 focus:ring-1 focus:ring-air-500'
         .($galat ? ' border-red-400 focus:border-red-500 focus:ring-red-500' : '');
 @endphp
 
@@ -22,9 +22,11 @@
            @if ($galat) aria-invalid="true" aria-describedby="{{ $nama }}-galat" @endif
            {{ $attributes->except('id')->merge(['class' => $kelas]) }}>
 
-    <button type="button" tabindex="-1" @click="terlihat = ! terlihat"
+    {{-- Ikut dalam urutan tab: menampilkan password adalah fungsi tersendiri,
+         dan WCAG 2.1.1 mensyaratkannya bisa dijalankan lewat papan ketik. --}}
+    <button type="button" @click="terlihat = ! terlihat"
             class="absolute inset-y-0 right-0 flex items-center rounded-r-lg px-3 text-slate-400 transition-colors
-                   hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+                   hover:text-air-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-air-500"
             aria-label="Tampilkan password"
             :aria-label="terlihat ? 'Sembunyikan password' : 'Tampilkan password'">
         <x-ikon x-show="! terlihat" nama="mata" class="size-[18px]"/>

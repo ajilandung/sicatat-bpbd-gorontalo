@@ -8,7 +8,7 @@
 
         @if ($wajibGanti)
             <div class="mb-6">
-                <div class="mb-3 h-1 w-9 rounded-full bg-brand-600"></div>
+                <div class="mb-3 h-1 w-9 rounded-full bg-air-600"></div>
                 <h1 class="text-xl font-semibold tracking-tight text-navy-900 sm:text-2xl">Buat Password Baru</h1>
                 <p class="mt-2 text-sm leading-relaxed text-slate-600">
                     Akun Anda masih memakai password sementara dari administrator.

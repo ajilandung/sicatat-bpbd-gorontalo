@@ -8,7 +8,7 @@
     };
 
     $gaya = match ($warna) {
-        'brand' => 'bg-brand-50 text-brand-800 ring-brand-600/20',
+        'navy' => 'bg-navy-100 text-navy-800 ring-navy-700/20',
         'air' => 'bg-air-50 text-air-800 ring-air-600/20',
         default => 'bg-slate-100 text-slate-600 ring-slate-400/20',
     };

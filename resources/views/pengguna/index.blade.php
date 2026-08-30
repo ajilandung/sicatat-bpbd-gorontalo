@@ -77,7 +77,7 @@
                             <td class="px-5 py-3.5">
                                 <div class="flex items-center gap-3">
                                     <x-ui.avatar :nama="$pengguna->name" ukuran="sm"
-                                                 :warna="$pengguna->isAdmin() ? 'brand' : 'netral'"/>
+                                                 :warna="$pengguna->isAdmin() ? 'navy' : 'netral'"/>
                                     <div class="min-w-0">
                                         <p class="truncate font-medium text-navy-900">{{ $pengguna->name }}</p>
                                         <p class="truncate text-xs text-slate-500">
@@ -167,7 +167,7 @@
         @forelse ($daftarPengguna as $pengguna)
             <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
                 <div class="flex items-start gap-3">
-                    <x-ui.avatar :nama="$pengguna->name" :warna="$pengguna->isAdmin() ? 'brand' : 'netral'"/>
+                    <x-ui.avatar :nama="$pengguna->name" :warna="$pengguna->isAdmin() ? 'navy' : 'netral'"/>
 
                     <div class="min-w-0 flex-1">
                         <p class="truncate font-medium text-navy-900">{{ $pengguna->name }}</p>

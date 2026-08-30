@@ -15,6 +15,8 @@ class AutentikasiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const VIDEO_LATAR = 'video/latar-login.mp4';
+
     public function test_halaman_login_dapat_diakses_tamu(): void
     {
         $this->get('/login')
@@ -31,6 +33,71 @@ class AutentikasiTest extends TestCase
             ->assertDontSee('Register', false)
             ->assertDontSee('Google', false)
             ->assertDontSee('Facebook', false);
+    }
+
+    public function test_panel_identitas_memutar_video_latar_saat_berkasnya_tersedia(): void
+    {
+        $this->assertFileExists(public_path(self::VIDEO_LATAR), 'Berkas video latar login belum tersalin ke public/video.');
+
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('data-video-latar', false)
+            ->assertSee('video/latar-login.mp4', false);
+    }
+
+    public function test_panel_identitas_memasang_poster_sebelum_video_termuat(): void
+    {
+        // Tanpa poster, panel sempat gelap kosong selama video diunduh. Poster
+        // dipasang sebagai latar wadahnya, bukan atribut `poster` pada <video>,
+        // supaya tetap terlihat meski videonya sengaja tidak dimuat.
+        $this->assertFileExists(public_path('video/latar-login.jpg'));
+
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('video/latar-login.jpg', false)
+            ->assertSee('background-image:', false);
+    }
+
+    public function test_video_latar_menyediakan_kendali_jeda(): void
+    {
+        // WCAG 2.2.2: gerakan yang berjalan sendiri lebih dari lima detik wajib
+        // dapat dihentikan pengguna. Video latar berdurasi 15 detik dan berulang.
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('data-kendali-video', false)
+            ->assertSee('Jeda video latar');
+    }
+
+    public function test_tombol_tampilkan_password_dapat_dicapai_papan_ketik(): void
+    {
+        // WCAG 2.1.1: menampilkan password adalah fungsi tersendiri, jadi tombolnya
+        // tidak boleh dikeluarkan dari urutan tab.
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('Tampilkan password')
+            ->assertDontSee('tabindex="-1"', false);
+    }
+
+    public function test_halaman_login_tetap_utuh_ketika_berkas_video_tidak_ada(): void
+    {
+        // Video latar hanya pelengkap. Pada server yang berkas videonya belum
+        // ikut tersalin, halaman login wajib tetap tampil penuh — bukan berujung
+        // galat atau menyisakan permintaan berkas yang gagal.
+        $asli = public_path(self::VIDEO_LATAR);
+        $titipan = $asli.'.titipan-pengujian';
+
+        rename($asli, $titipan);
+
+        try {
+            $this->get('/login')
+                ->assertOk()
+                ->assertSee('Masuk ke Sistem')
+                ->assertDontSee('data-video-latar', false)
+                ->assertDontSee('data-kendali-video', false)
+                ->assertDontSee('latar-login.mp4', false);
+        } finally {
+            rename($titipan, $asli);
+        }
     }
 
     public function test_tamu_diarahkan_ke_login_saat_membuka_dashboard(): void

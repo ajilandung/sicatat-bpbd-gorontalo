@@ -2,7 +2,7 @@
 
 @php
     $gayaIkon = match ($warna) {
-        'brand' => 'bg-brand-50 text-brand-700',
+        'navy' => 'bg-navy-100 text-navy-800',
         'air' => 'bg-air-50 text-air-700',
         default => 'bg-slate-100 text-slate-500',
     };
@@ -28,8 +28,8 @@
 
     @if ($href)
         <a href="{{ $href }}"
-           class="mt-3 inline-flex items-center gap-1 rounded text-sm font-medium text-brand-700 transition-colors
-                  hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+           class="mt-3 inline-flex items-center gap-1 rounded text-sm font-medium text-air-700 transition-colors
+                  hover:text-air-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500">
             {{ $slot }}
             <x-ikon nama="panah-kanan" class="size-3.5"/>
         </a>
