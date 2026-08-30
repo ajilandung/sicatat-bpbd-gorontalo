@@ -54,6 +54,7 @@ Prinsip yang dipegang:
 - **Lokasi disimpan hanya sampai tingkat desa.** Kecamatan dan kabupaten diturunkan lewat relasi, sehingga mustahil ada data dengan kecamatan yang tidak cocok dengan kabupatennya. Ini penting karena **61 nama desa di Provinsi Gorontalo tidak unik** — ada dua "Talumopatu", dua "Modelomo", dua "Tamboo", dua "Iloheluma", dan seterusnya.
 - **Volume air selalu dalam liter** (PRD 8.5: "Satuan: Liter"). Tidak ada kolom satuan, agar penjumlahan `SUM()` selalu valid.
 - **Angka boleh tidak lengkap.** Volume air wajib, tetapi jumlah KK dan jiwa boleh kosong karena laporan lapangan kerap tidak mencantumkannya.
+- **Tanggal kegiatan terpisah dari waktu input.** `tanggal_penyaluran` adalah tanggal kegiatan benar-benar terjadi, `created_at` adalah waktu data dimasukkan ke sistem. Keduanya tidak boleh disamakan — lihat §3.6.
 
 ---
 
@@ -93,6 +94,7 @@ erDiagram
         string   kode        "nullable, unique"
         string   nama
         enum     jenis       "desa | kelurahan"
+        boolean  aktif       "muncul di form penyaluran"
         datetime created_at
         datetime updated_at
     }
@@ -124,14 +126,14 @@ erDiagram
 
     PENYALURANS {
         bigint   id PK
-        date     tanggal
+        date     tanggal_penyaluran "tanggal kegiatan"
         bigint   user_id FK       "penginput"
         int      jumlah_kk        "nullable"
         int      jumlah_jiwa      "nullable"
         int      volume_liter
         text     keterangan       "nullable"
         datetime deleted_at       "soft delete"
-        datetime created_at
+        datetime created_at       "waktu data diinput"
         datetime updated_at
     }
 
@@ -238,11 +240,16 @@ Memenuhi FR-06. Berisi 657 desa dan 72 kelurahan.
 | `kode` | `varchar(15)` UNIQUE | ✓ | `NULL` | mis. `75.03.02.2011` |
 | `nama` | `varchar(100)` | ✗ | — | mis. `Tongo` |
 | `jenis` | `enum('desa','kelurahan')` | ✗ | `'desa'` | Wilayah di Kota Gorontalo berupa kelurahan |
+| `aktif` | `boolean` | ✗ | `true` | Hanya wilayah aktif yang ditawarkan pada form penyaluran |
 | `created_at` / `updated_at` | `timestamp` | ✓ | `NULL` | |
 
-**Index:** `kecamatan_id`, `kode` (unique), unique gabungan (`kecamatan_id`, `nama`).
+**Index:** `kecamatan_id`, `kode` (unique), `aktif`, unique gabungan (`kecamatan_id`, `nama`).
 
 Jenis desa/kelurahan ditentukan otomatis dari kode wilayah: empat digit terakhir yang diawali `1` berarti kelurahan, `2` berarti desa.
+
+**Nama unik per kecamatan, bukan per provinsi.** 61 nama desa di Provinsi Gorontalo dipakai lebih dari satu wilayah — ada dua "Talumopatu", dua "Modelomo", dan seterusnya. Karena itu batasan uniknya digabung dengan `kecamatan_id`.
+
+**Tidak ada penghapusan.** Desa yang salah atau tidak lagi dipakai dinonaktifkan lewat kolom `aktif`, sama seperti pola akun pengguna. Desa yang sudah tercatat pada kegiatan penyaluran tidak boleh hilang, karena laporan lama akan kehilangan nama wilayahnya.
 
 ---
 
@@ -271,16 +278,22 @@ Tabel inti sistem. Memenuhi FR-08 sampai FR-15 dan menjadi sumber seluruh perhit
 | Kolom | Tipe | Null | Default | PRD 8.5 | Keterangan |
 |---|---|:---:|---|---|---|
 | `id` | `bigint unsigned` PK | ✗ | auto | — | |
-| `tanggal` | `date` | ✗ | — | Tanggal penyaluran | Tanggal saja, tanpa jam |
+| `tanggal_penyaluran` | `date` | ✗ | — | Tanggal penyaluran | Tanggal kegiatan terjadi, tanpa jam. Bukan tanggal input |
 | `user_id` | `bigint unsigned` FK | ✗ | — | Petugas yang menginput | → `users.id`, `ON DELETE RESTRICT` |
 | `jumlah_kk` | `int unsigned` | ✓ | `NULL` | Jumlah KK terdampak | FR-11. Boleh kosong |
 | `jumlah_jiwa` | `int unsigned` | ✓ | `NULL` | Jumlah jiwa terdampak | FR-12. Boleh kosong |
 | `volume_liter` | `int unsigned` | ✗ | — | Jumlah air tersalur (liter) | FR-13. Wajib. Selalu liter |
 | `keterangan` | `text` | ✓ | `NULL` | Keterangan | Catatan bebas, mis. lokasi spesifik atau kendala |
 | `deleted_at` | `timestamp` | ✓ | `NULL` | — | *Soft delete* untuk FR-10 |
-| `created_at` / `updated_at` | `timestamp` | ✓ | `NULL` | — | |
+| `created_at` / `updated_at` | `timestamp` | ✓ | `NULL` | — | `created_at` = waktu data dimasukkan ke sistem |
 
-**Index:** `tanggal`, `user_id`.
+**Index:** `tanggal_penyaluran`, `user_id`.
+
+**Tanggal kegiatan ≠ tanggal input.** Data lapangan tidak selalu sampai ke admin pada hari kegiatan berlangsung. Contoh nyata: Rabu admin menerima tiga kegiatan yang terjadi hari Rabu, lalu Kamis baru diketahui ada empat kegiatan lain yang juga terjadi hari Rabu — sehingga total kegiatan Rabu menjadi tujuh setelah data dilengkapi. Karena itu:
+
+1. Admin dapat menambahkan dan mengoreksi data untuk tanggal yang sudah lewat. Validasi form **tidak boleh** mengunci input ke tanggal hari ini; batasannya hanya `before_or_equal:today` agar salah ketik tahun tidak lolos.
+2. Seluruh rekap, laporan, filter tanggal, dashboard, dan grafik mengelompokkan data berdasarkan `tanggal_penyaluran`, **bukan** `created_at`. Dengan begitu data susulan otomatis masuk ke tanggal kejadiannya.
+3. Laporan yang sudah diekspor ke PDF/Excel adalah *snapshot* dan tidak ikut berubah. Laporan yang dibuat ulang setelah data susulan masuk wajib memuat seluruh data terbaru.
 
 **Angka berlaku untuk seluruh desa pada kegiatan tersebut.** Bila satu kegiatan mencakup empat desa dengan 16.000 liter, angka itu adalah total keempatnya — bukan per desa. Sistem menandai data seperti ini sebagai *angka gabungan* di layar dan di laporan, sehingga pembaca tidak salah menafsirkan.
 
@@ -328,14 +341,16 @@ Alasannya: jika sebuah desa dihapus dengan `CASCADE`, seluruh riwayat penyaluran
 
 > "Desa Tongo tidak dapat dihapus karena masih tercatat pada 12 kegiatan penyaluran."
 
-| Tabel | Boleh dihapus jika | Bila masih dipakai |
+Di atas pengaman basis data itu, **aplikasi sama sekali tidak menyediakan penghapusan master data.** Route `destroy` untuk desa, instansi, dan pengguna sengaja tidak didaftarkan; yang tersedia hanya menonaktifkan. `RESTRICT` tetap dipasang sebagai jaring pengaman terakhir bila suatu saat ada penghapusan lewat jalur lain.
+
+| Tabel | Penghapusan lewat aplikasi | Bila masih dipakai (jalur lain) |
 |---|---|---|
-| `kabupatens` | tidak punya kecamatan | ditolak |
-| `kecamatans` | tidak punya desa | ditolak |
-| `desas` | tidak tercatat pada kegiatan mana pun | ditolak |
-| `instansis` | tidak tercatat pada kegiatan mana pun | ditolak — sarankan set `aktif = false` |
-| `users` | tidak punya data penyaluran | ditolak — sarankan set `aktif = false` |
-| `penyalurans` | selalu boleh (soft delete) | baris penghubungnya ikut terhapus |
+| `kabupatens` | tidak ada — hanya dapat dilihat | ditolak database |
+| `kecamatans` | tidak ada — hanya dapat dilihat | ditolak database |
+| `desas` | tidak ada — set `aktif = false` | ditolak database |
+| `instansis` | tidak ada — set `aktif = false` | ditolak database |
+| `users` | tidak ada — set `aktif = false` | ditolak database |
+| `penyalurans` | boleh (soft delete, FR-10) | baris penghubungnya ikut terhapus |
 
 ---
 
@@ -355,13 +370,17 @@ Urutan migrasi mengikuti arah ketergantungan foreign key:
 | 8 | `2026_08_28_100007_create_desa_penyaluran_table` | FK → `penyalurans`, `desas` |
 | 9 | `2026_08_28_100008_create_instansi_penyaluran_table` | FK → `penyalurans`, `instansis` |
 | 10 | `2026_08_29_100001_add_auth_fields_to_users_table` | Tambah `harus_ganti_password`, `last_login_at` |
+| 11 | `2026_08_31_100001_rename_tanggal_on_penyalurans_table` | `tanggal` → `tanggal_penyaluran` (§3.6) |
+| 12 | `2026_08_31_100002_add_aktif_to_desas_table` | Tambah `aktif` pada desa (§3.4) |
 
 Contoh migrasi tabel inti:
 
 ```php
 Schema::create('penyalurans', function (Blueprint $table) {
     $table->id();
-    $table->date('tanggal');
+
+    // Tanggal kegiatan terjadi — bukan tanggal data dimasukkan (`created_at`).
+    $table->date('tanggal_penyaluran');
     $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
 
     // Angka berlaku untuk seluruh desa pada kegiatan ini.
@@ -373,7 +392,7 @@ Schema::create('penyalurans', function (Blueprint $table) {
     $table->softDeletes();
     $table->timestamps();
 
-    $table->index('tanggal');
+    $table->index('tanggal_penyaluran');
 });
 ```
 
@@ -441,12 +460,12 @@ WHERE  p.deleted_at IS NULL;
 **Grafik penyaluran per bulan, 12 bulan terakhir (FR-21):**
 
 ```sql
-SELECT DATE_FORMAT(tanggal, '%Y-%m') AS bulan,
-       SUM(volume_liter)             AS total_liter,
-       COUNT(*)                      AS jumlah_kegiatan
+SELECT DATE_FORMAT(tanggal_penyaluran, '%Y-%m') AS bulan,
+       SUM(volume_liter)                        AS total_liter,
+       COUNT(*)                                 AS jumlah_kegiatan
 FROM   penyalurans
 WHERE  deleted_at IS NULL
-  AND  tanggal >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+  AND  tanggal_penyaluran >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
 GROUP  BY bulan
 ORDER  BY bulan;
 ```
@@ -492,7 +511,7 @@ JOIN   desa_penyaluran dp ON dp.penyaluran_id = p.id
 JOIN   desas d            ON d.id = dp.desa_id
 JOIN   kecamatans k       ON k.id = d.kecamatan_id
 WHERE  p.deleted_at IS NULL
-  AND  p.tanggal BETWEEN ? AND ?
+  AND  p.tanggal_penyaluran BETWEEN ? AND ?
   AND  k.kabupaten_id = ?;
 ```
 
@@ -507,7 +526,7 @@ Dua kegiatan berikut diambil apa adanya dari dokumen *Update Kegiatan Penyaluran
 **Kegiatan sederhana — 1 Agustus 2026, satu desa satu instansi:**
 
 ```
-penyalurans        : tanggal 2026-08-01, kk 220, jiwa 459, volume 4000
+penyalurans        : tanggal_penyaluran 2026-08-01, kk 220, jiwa 459, volume 4000
 desa_penyaluran    : Mulyonegoro (Kec. Pulubala, Kab. Gorontalo)
 instansi_penyaluran: BPBD Kabupaten Gorontalo
 ```
@@ -515,7 +534,7 @@ instansi_penyaluran: BPBD Kabupaten Gorontalo
 **Kegiatan gabungan — 12 Agustus 2026, empat desa satu angka:**
 
 ```
-penyalurans        : tanggal 2026-08-12, kk 246, jiwa NULL, volume 16000
+penyalurans        : tanggal_penyaluran 2026-08-12, kk 246, jiwa NULL, volume 16000
 desa_penyaluran    : Batu Hijau, Tongo, Tolotio, Pinomontiga
 instansi_penyaluran: BPBPK Provinsi Gorontalo
 ```

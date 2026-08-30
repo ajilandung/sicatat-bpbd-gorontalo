@@ -15,9 +15,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * instansi sekaligus. Angka KK, jiwa, dan volume air berlaku untuk
  * seluruh desa pada kegiatan tersebut — persis seperti cara laporan
  * lapangan ditulis selama ini.
+ *
+ * `tanggal_penyaluran` adalah tanggal kegiatan terjadi, sedangkan `created_at`
+ * adalah waktu data dimasukkan ke sistem. Keduanya kerap berbeda karena laporan
+ * lapangan baru sampai ke admin belakangan, dan data susulan untuk tanggal yang
+ * sudah lewat memang harus bisa ditambahkan. Karena itu setiap rekap, laporan,
+ * filter, dan grafik dikelompokkan berdasarkan `tanggal_penyaluran`.
  */
 #[Fillable([
-    'tanggal',
+    'tanggal_penyaluran',
     'user_id',
     'jumlah_kk',
     'jumlah_jiwa',
@@ -33,7 +39,7 @@ class Penyaluran extends Model
     protected function casts(): array
     {
         return [
-            'tanggal' => 'date',
+            'tanggal_penyaluran' => 'date',
         ];
     }
 

@@ -17,7 +17,17 @@
         <option value="">{{ $kosong }}</option>
     @endif
 
+    {{-- Nilai berupa array diperlakukan sebagai kelompok, mis. daftar kecamatan
+         yang dikelompokkan per kabupaten. --}}
     @foreach ($opsi as $kunci => $label)
-        <option value="{{ $kunci }}" @selected((string) old($nama, $nilai) === (string) $kunci)>{{ $label }}</option>
+        @if (is_array($label))
+            <optgroup label="{{ $kunci }}">
+                @foreach ($label as $subKunci => $subLabel)
+                    <option value="{{ $subKunci }}" @selected((string) old($nama, $nilai) === (string) $subKunci)>{{ $subLabel }}</option>
+                @endforeach
+            </optgroup>
+        @else
+            <option value="{{ $kunci }}" @selected((string) old($nama, $nilai) === (string) $kunci)>{{ $label }}</option>
+        @endif
     @endforeach
 </select>

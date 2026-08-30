@@ -2,14 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\DapatDicari;
+use App\Models\Concerns\PunyaStatusAktif;
+use Database\Factories\InstansiFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable(['nama', 'singkatan', 'alamat', 'telepon', 'aktif'])]
 class Instansi extends Model
 {
+    /** @use HasFactory<InstansiFactory> */
+    use DapatDicari, HasFactory, PunyaStatusAktif;
+
     protected $table = 'instansis';
 
     protected function casts(): array
@@ -19,17 +25,17 @@ class Instansi extends Model
         ];
     }
 
+    /**
+     * @return array<int, string>
+     */
+    protected function kolomPencarian(): array
+    {
+        return ['nama', 'singkatan'];
+    }
+
     public function penyalurans(): BelongsToMany
     {
         return $this->belongsToMany(Penyaluran::class, 'instansi_penyaluran');
-    }
-
-    /**
-     * Hanya instansi aktif yang boleh muncul di form penyaluran.
-     */
-    public function scopeAktif(Builder $query): Builder
-    {
-        return $query->where('aktif', true);
     }
 
     /**

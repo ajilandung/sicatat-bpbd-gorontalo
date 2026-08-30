@@ -10,7 +10,12 @@ return new class extends Migration
     {
         Schema::create('penyalurans', function (Blueprint $table) {
             $table->id();
-            $table->date('tanggal');
+
+            // Tanggal kegiatan sebenarnya terjadi di lapangan. Sengaja dipisahkan
+            // dari `created_at` (waktu data dimasukkan ke sistem) karena laporan
+            // lapangan kerap baru sampai ke admin sehari atau beberapa hari kemudian.
+            // Seluruh rekap, laporan, dan filter memakai kolom ini, bukan `created_at`.
+            $table->date('tanggal_penyaluran');
 
             // Pengguna yang menginput (PRD 8.5 - Informasi Sistem).
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
@@ -28,7 +33,7 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
-            $table->index('tanggal');
+            $table->index('tanggal_penyaluran');
         });
     }
 

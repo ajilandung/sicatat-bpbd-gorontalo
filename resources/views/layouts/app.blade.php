@@ -32,8 +32,8 @@
         [
             'judul' => 'Master Data',
             'item' => [
-                ['label' => 'Data Wilayah', 'ikon' => 'map', 'siap' => false, 'fase' => 2, 'admin' => true],
-                ['label' => 'Data Instansi', 'ikon' => 'building', 'siap' => false, 'fase' => 2, 'admin' => true],
+                ['label' => 'Data Wilayah', 'route' => 'wilayah.desa.index', 'aktifJika' => 'wilayah.*', 'ikon' => 'map', 'siap' => true, 'admin' => true],
+                ['label' => 'Data Instansi', 'route' => 'instansi.index', 'aktifJika' => 'instansi.*', 'ikon' => 'building', 'siap' => true, 'admin' => true],
                 ['label' => 'Manajemen Pengguna', 'route' => 'pengguna.index', 'aktifJika' => 'pengguna.*', 'ikon' => 'users', 'siap' => true, 'admin' => true],
             ],
         ],

@@ -3,8 +3,12 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InstansiController;
 use App\Http\Controllers\Pengguna\PenggunaController;
 use App\Http\Controllers\Pengguna\ResetPasswordController;
+use App\Http\Controllers\Wilayah\DesaController;
+use App\Http\Controllers\Wilayah\KabupatenController;
+use App\Http\Controllers\Wilayah\KecamatanController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -45,8 +49,28 @@ Route::middleware(['auth', 'aktif'])->group(function () {
                 ->name('pengguna.reset-password');
             Route::put('pengguna/{pengguna}/reset-password', [ResetPasswordController::class, 'update'])
                 ->name('pengguna.reset-password.update');
+
+            // Master Data Wilayah (FR-04, FR-05, FR-06).
+            // Kabupaten dan kecamatan hanya dapat dilihat: datanya berasal dari
+            // sumber resmi. Desa/kelurahan dapat ditambah dan diubah, tetapi
+            // tidak dapat dihapus — hanya dinonaktifkan.
+            Route::prefix('wilayah')->name('wilayah.')->group(function () {
+                Route::get('kabupaten', [KabupatenController::class, 'index'])->name('kabupaten.index');
+                Route::get('kecamatan', [KecamatanController::class, 'index'])->name('kecamatan.index');
+
+                Route::resource('desa', DesaController::class)->except(['show', 'destroy']);
+
+                Route::patch('desa/{desa}/status', [DesaController::class, 'ubahStatus'])
+                    ->name('desa.status');
+            });
+
+            // Master Data Instansi Pelaksana (FR-07).
+            Route::resource('instansi', InstansiController::class)->except(['show', 'destroy']);
+
+            Route::patch('instansi/{instansi}/status', [InstansiController::class, 'ubahStatus'])
+                ->name('instansi.status');
         });
 
-        // Menu Master Data dan Penyaluran menyusul pada Fase 2 dan 3.
+        // Menu Penyaluran menyusul pada Fase 3.
     });
 });

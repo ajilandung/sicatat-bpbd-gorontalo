@@ -139,8 +139,10 @@ POST /penyaluran
    ↓
 middleware: web, auth, role:admin
    ↓
-StorePenyaluranRequest        → validasi: tanggal wajib & tidak di masa depan,
-                                 desa_id ada, jumlah_kk ≥ 0, volume_liter ≥ 1, dst.
+StorePenyaluranRequest        → validasi: tanggal_penyaluran wajib, boleh tanggal
+                                 yang sudah lewat, tidak boleh di masa depan
+                                 (before_or_equal:today), desa_id ada,
+                                 jumlah_kk ≥ 0, volume_liter ≥ 1, dst.
    ↓
 PenyaluranController@store    → set user_id = pengguna yang login
    ↓
@@ -249,10 +251,12 @@ Dua aturan otorisasi bergantung pada objek, bukan sekadar role, sehingga ditanga
 | GET | `/laporan` | `LaporanController@index` | semua | FR-22 |
 | GET | `/laporan/pdf` | `LaporanController@pdf` | semua | FR-23 |
 | GET | `/laporan/excel` | `LaporanController@excel` | semua | FR-24 |
-| resource | `/wilayah/kabupaten` | `Wilayah\KabupatenController` | admin | FR-04 |
-| resource | `/wilayah/kecamatan` | `Wilayah\KecamatanController` | admin | FR-05 |
-| resource | `/wilayah/desa` | `Wilayah\DesaController` | admin | FR-06 |
-| resource | `/instansi` | `InstansiController` | admin | FR-07 |
+| GET | `/wilayah/kabupaten` | `Wilayah\KabupatenController@index` — daftar saja | admin | FR-04 |
+| GET | `/wilayah/kecamatan` | `Wilayah\KecamatanController@index` — daftar saja | admin | FR-05 |
+| resource | `/wilayah/desa` (kecuali `show`, `destroy`) | `Wilayah\DesaController` | admin | FR-06 |
+| PATCH | `/wilayah/desa/{id}/status` | `Wilayah\DesaController@ubahStatus` | admin | FR-06 |
+| resource | `/instansi` (kecuali `show`, `destroy`) | `InstansiController` | admin | FR-07 |
+| PATCH | `/instansi/{id}/status` | `InstansiController@ubahStatus` | admin | FR-07 |
 | resource | `/pengguna` (kecuali `destroy`) | `Pengguna\PenggunaController` | admin | FR-03 |
 | PATCH | `/pengguna/{id}/status` | `Pengguna\PenggunaController@ubahStatus` | admin | FR-03 |
 | GET | `/pengguna/{id}/reset-password` | `Pengguna\ResetPasswordController@edit` | admin | FR-03 |
@@ -311,7 +315,7 @@ Seluruh angka dihitung langsung lewat query agregasi, tanpa tabel ringkasan dan 
 | Kegiatan bulan ini | `COUNT(*)` dengan filter bulan berjalan | — |
 | Grafik penyaluran per bulan | `SUM(volume_liter)` di-`GROUP BY` bulan, 12 bulan terakhir | FR-21 |
 | Wilayah paling sering menerima | `COUNT(*)` di-`GROUP BY desa_id` lewat `desa_penyaluran`, ambil 5 teratas | — |
-| Data penyaluran terbaru | 5 baris terakhir urut `tanggal` menurun | — |
+| Data penyaluran terbaru | 5 baris terakhir urut `tanggal_penyaluran` menurun | — |
 | Kelengkapan data | Berapa kegiatan yang belum mencantumkan KK atau jiwa | — |
 
 Kartu terakhir ada karena `jumlah_kk` dan `jumlah_jiwa` boleh kosong: angka total tetap ditampilkan, tetapi disertai keterangan berapa data yang belum lengkap, sehingga pembaca tahu totalnya belum mencakup semua kegiatan.
@@ -331,6 +335,8 @@ Filter dikirim sebagai query string agar hasil pencarian bisa di-*bookmark* dan 
            &kabupaten_id=2&kecamatan_id=14&desa_id=&instansi_id=3&user_id=&q=
 ```
 
+Rentang `tanggal_mulai` dan `tanggal_akhir` selalu dicocokkan ke kolom `tanggal_penyaluran`, **bukan** `created_at`. Dengan begitu kegiatan yang datanya baru masuk beberapa hari kemudian tetap muncul pada tanggal kejadiannya.
+
 Diterapkan sebagai Eloquent *local scope* pada model `Penyaluran`, sehingga potongan kode yang sama dipakai ulang oleh halaman riwayat, halaman laporan, export PDF, dan export Excel. Filter kabupaten dan kecamatan bekerja lewat `whereHas` ke relasi desa.
 
 ### 9.2 Laporan & Export (PRD 8.8, 8.9)
@@ -343,6 +349,21 @@ Kedua format export sengaja dibuat **berbeda bentuk**, karena kegunaannya memang
 - **Excel (FR-24)** — `maatwebsite/excel` mengekspor `.xlsx` berbentuk **tabel datar**, satu baris per kegiatan dengan kolom Tanggal, Kabupaten, Kecamatan, Desa, KK, Jiwa, Volume, Pelaksana, dan Penginput, ditambah baris total di bagian bawah. Bentuk ini siap diolah ulang dengan *pivot table*. Untuk kegiatan yang mencakup beberapa desa, nama-nama desanya digabung dalam satu sel dan diberi penanda bahwa angkanya adalah angka gabungan.
 
 Kedua export **mengalirkan filter yang sedang aktif**, sehingga isi berkas selalu sama dengan yang terlihat di layar.
+
+### 9.3 Data Susulan dan Koreksi Historis
+
+Aturan bisnis BPBD: **data lapangan tidak selalu sampai ke admin pada hari kegiatan berlangsung.** Hari Rabu admin bisa menerima tiga kegiatan yang terjadi hari Rabu, lalu hari Kamis baru diketahui ada empat kegiatan lain yang juga terjadi hari Rabu — sehingga total kegiatan hari Rabu menjadi tujuh setelah data dilengkapi. Aturan ini mengikat seluruh modul dan tidak boleh disederhanakan.
+
+| Aspek | Ketentuan |
+|---|---|
+| Kolom | `tanggal_penyaluran` = tanggal kegiatan terjadi. `created_at` = waktu data dimasukkan ke sistem. Tidak pernah disamakan |
+| Input | Admin bebas memilih tanggal yang sudah lewat. Batas satu-satunya: tidak boleh melewati hari ini (`before_or_equal:today`), semata untuk menangkap salah ketik tahun |
+| Koreksi | Admin dapat mengubah dan menghapus data historis kapan saja (FR-09, FR-10). Penghapusan memakai *soft delete* sehingga masih dapat dipulihkan |
+| Rekap & dashboard | Seluruh pengelompokan, `COUNT`, dan `SUM` memakai `tanggal_penyaluran`. Data susulan otomatis masuk ke tanggal kejadiannya |
+| Filter & laporan | Rentang tanggal dicocokkan ke `tanggal_penyaluran` |
+| Export | Berkas PDF/Excel yang sudah diunduh adalah *snapshot* saat itu dan tidak ikut berubah. Export ulang untuk periode yang sama wajib memuat seluruh data terbaru |
+
+**Riwayat perubahan.** Karena data historis boleh dikoreksi belakangan, setiap perubahan pada data penyaluran dicatat: siapa yang mengubah, kapan, dan nilai sebelum/sesudahnya. Ini melengkapi `user_id` yang hanya menyimpan penginput. Tabel dan implementasinya dibangun bersama modul penyaluran di **Fase 3**, sebab objek yang dicatat baru ada di fase itu.
 
 ---
 
@@ -441,7 +462,11 @@ Target: laptop, desktop, dan tablet.
 | 3 | **Satu kegiatan dapat mencakup beberapa desa** — laporan asli kerap menulis satu angka gabungan untuk beberapa desa sekaligus. | Relasi desa ↔ penyaluran dibuat **banyak-ke-banyak**. Angka KK, jiwa, dan volume berlaku untuk seluruh desa pada kegiatan tersebut, ditandai sebagai *angka gabungan*, dan dibagi rata bila dibutuhkan rekap per desa. |
 | 4 | **Satu kegiatan dapat dikerjakan beberapa instansi** — mis. BPBD Provinsi, Polsek, dan PDAM bersama-sama. | Relasi instansi ↔ penyaluran dibuat **banyak-ke-banyak**, dipilih dengan centang pada form. Filter dan rekap per instansi tetap berfungsi. |
 | 5 | **Kelengkapan KK dan jiwa** — banyak entri laporan hanya mencantumkan volume air. | `jumlah_kk` dan `jumlah_jiwa` **boleh kosong**; `volume_liter` tetap wajib. Dashboard menampilkan total dari data yang terisi disertai penanda berapa data yang belum lengkap. |
-| 6 | **Bentuk laporan dan export** | **PDF** meniru dokumen infografis kantor (per tanggal → kabupaten → kecamatan → desa, dengan total harian dan Ringkasan Keseluruhan). **Excel** berbentuk tabel datar siap *pivot*. Tanpa kop surat resmi dan tanpa blok tanda tangan. |
+| 6 | **Data susulan untuk tanggal yang sudah lewat** — laporan lapangan kerap baru sampai ke admin beberapa hari kemudian. | Tanggal kejadian disimpan pada `tanggal_penyaluran`, terpisah dari `created_at`. Admin bebas menginput dan mengoreksi data historis; seluruh rekap dan laporan mengelompokkan berdasarkan `tanggal_penyaluran`. Setiap perubahan dicatat pada riwayat perubahan (dibangun di Fase 3). Rincian di §9.3. |
+| 7 | **Sebesar apa master data wilayah dapat diubah** | Kabupaten dan kecamatan **hanya dapat dilihat** — datanya berasal dari sumber resmi dan praktis tidak berubah; perubahan dilakukan lewat seeder. Desa/kelurahan **dapat ditambah dan diubah** admin, karena pemekaran wilayah dan perbaikan ejaan sesekali terjadi. |
+| 8 | **Penghapusan master data** | Tidak ada penghapusan untuk desa maupun instansi. Keduanya **dinonaktifkan**, sama seperti pola akun pengguna: hilang dari pilihan form penyaluran, tetapi riwayat penyaluran yang menyebutnya tetap utuh. Route `destroy` sengaja tidak didaftarkan. |
+| 9 | **Penambahan instansi pelaksana** | Admin **bebas menambah** instansi baru. Di lapangan pelaksananya memang bertambah sewaktu-waktu (Polsek, PDAM, relawan), dan menunggu pengembang akan menghambat pencatatan. |
+| 10 | **Bentuk laporan dan export** | **PDF** meniru dokumen infografis kantor (per tanggal → kabupaten → kecamatan → desa, dengan total harian dan Ringkasan Keseluruhan). **Excel** berbentuk tabel datar siap *pivot*. Tanpa kop surat resmi dan tanpa blok tanda tangan. |
 
 ### 12.2 Masih Terbuka
 
@@ -512,7 +537,7 @@ Langkah pokok:
 |---|---|---|
 | **1** | Setup project, migrasi, model, autentikasi, role, manajemen pengguna, layout dasar | FR-01, FR-02, FR-03 |
 | **2** | Master data: wilayah (kab/kec/desa), instansi | FR-04 – FR-07 |
-| **3** | Modul penyaluran: CRUD, riwayat, pencarian, filter | FR-08 – FR-18 |
+| **3** | Modul penyaluran: CRUD, riwayat, pencarian, filter, pencatatan riwayat perubahan data (§9.3) | FR-08 – FR-18 |
 | **4** | Dashboard: kartu statistik dan grafik bulanan | FR-19 – FR-21 |
 | **5** | Laporan, export PDF, export Excel | FR-22 – FR-24 |
 
