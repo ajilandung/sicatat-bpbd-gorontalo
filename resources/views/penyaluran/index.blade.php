@@ -34,12 +34,12 @@
 
             <div>
                 <label for="tanggal_mulai" class="mb-1.5 block text-xs font-medium text-slate-500">Tanggal mulai</label>
-                <x-ui.input nama="tanggal_mulai" tipe="date" :nilai="$filter['tanggal_mulai']"/>
+                <x-ui.tanggal nama="tanggal_mulai" :nilai="$filter['tanggal_mulai']"/>
             </div>
 
             <div>
                 <label for="tanggal_akhir" class="mb-1.5 block text-xs font-medium text-slate-500">Tanggal akhir</label>
-                <x-ui.input nama="tanggal_akhir" tipe="date" :nilai="$filter['tanggal_akhir']"/>
+                <x-ui.tanggal nama="tanggal_akhir" :nilai="$filter['tanggal_akhir']"/>
             </div>
 
             <x-ui.filter-wilayah

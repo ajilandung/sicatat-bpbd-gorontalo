@@ -337,6 +337,30 @@ class PenyaluranTest extends TestCase
         return substr($isi, $mulai, 600);
     }
 
+    public function test_kolom_tanggal_memakai_urutan_hari_bulan_tahun(): void
+    {
+        $admin = $this->admin();
+
+        $penyaluran = Penyaluran::factory()->padaTanggal('2026-08-12')->create(['user_id' => $admin->id]);
+        $penyaluran->desas()->attach($this->desa()->id);
+
+        foreach (["/penyaluran/{$penyaluran->id}/edit", '/penyaluran'] as $alamat) {
+            $isi = $this->actingAs($admin)->get($alamat)->assertOk()->getContent();
+
+            // Yang dilihat dan diketik admin memakai urutan hari/bulan/tahun.
+            $this->assertStringContainsString('placeholder="dd/mm/yyyy"', $isi);
+        }
+
+        $isiForm = $this->actingAs($admin)
+            ->get("/penyaluran/{$penyaluran->id}/edit")
+            ->getContent();
+
+        // Yang dikirim ke server tetap format baku, lewat input tersembunyi,
+        // sehingga validasi dan filter tidak perlu berubah.
+        $this->assertStringContainsString('<input type="hidden" name="tanggal_penyaluran"', $isiForm);
+        $this->assertStringContainsString('2026-08-12', $isiForm);
+    }
+
     public function test_detail_penyaluran_terbuka_untuk_semua_role(): void
     {
         $penyaluran = Penyaluran::factory()->create(['user_id' => $this->admin()->id]);

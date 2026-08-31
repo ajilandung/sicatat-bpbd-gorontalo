@@ -138,11 +138,11 @@
                     deskripsi="Isi tanggal kegiatan berlangsung di lapangan, bukan tanggal data ini dimasukkan. Laporan susulan untuk tanggal yang sudah lewat memang boleh dan seharusnya dimasukkan apa adanya.">
             <div class="space-y-6">
                 <x-ui.kolom nama="tanggal_penyaluran" label="Tanggal Penyaluran" wajib
-                            petunjuk="Boleh tanggal yang sudah lewat. Yang tidak diperbolehkan hanya tanggal di masa depan."
+                            petunjuk="Urutannya hari/bulan/tahun. Boleh tanggal yang sudah lewat — yang tidak diperbolehkan hanya tanggal di masa depan."
                             class="max-w-xs">
-                    <x-ui.input nama="tanggal_penyaluran" tipe="date" required
-                                :nilai="$ubah ? $penyaluran->tanggal_penyaluran?->format('Y-m-d') : ''"
-                                max="{{ now()->format('Y-m-d') }}"/>
+                    <x-ui.tanggal nama="tanggal_penyaluran" wajib
+                                  :nilai="$ubah ? $penyaluran->tanggal_penyaluran?->format('Y-m-d') : ''"
+                                  :max="now()->format('Y-m-d')"/>
                 </x-ui.kolom>
 
                 <div class="space-y-2">
