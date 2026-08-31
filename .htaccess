@@ -1,0 +1,29 @@
+# Pengaman lapis kedua untuk akar proyek.
+#
+# Pada peladen produksi, document root domain diarahkan ke `sicatat/public`,
+# sehingga berkas di direktori ini — .env, app/, storage/, vendor/, database/ —
+# sudah berada di luar jangkauan web dan aturan di bawah tidak pernah terpakai.
+#
+# Berkas ini ada untuk satu kemungkinan buruk yang sering terjadi di shared
+# hosting: document root tanpa sengaja diarahkan ke akar proyek, misalnya
+# setelah domain dipindahkan atau ditambah subdomain baru. Tanpa aturan ini,
+# `.env` beserta kredensial basis datanya akan terunduh oleh siapa pun yang
+# menebak alamatnya.
+#
+# Aturan ini tidak berlaku pada `public/`, yang membawa .htaccess-nya sendiri,
+# dan tidak berpengaruh sama sekali saat aplikasi dijalankan lokal dengan
+# `php artisan serve` — peladen bawaan PHP tidak membaca .htaccess.
+
+# Apache 2.4 dan LiteSpeed
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 ke bawah
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+# Daftar isi direktori jangan pernah ditampilkan, apa pun keadaannya.
+Options -Indexes
