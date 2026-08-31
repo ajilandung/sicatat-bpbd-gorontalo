@@ -8,7 +8,7 @@
     <title>@yield('judul') — Sicatat</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="h-full bg-slate-100 text-slate-700 antialiased">
+<body class="h-full bg-latar text-slate-700 antialiased">
 
 {{--
     Layout tanpa navigasi, dipakai saat pengguna harus menyelesaikan satu langkah

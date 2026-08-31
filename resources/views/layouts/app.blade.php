@@ -8,7 +8,7 @@
     <title>@yield('judul', 'Dashboard') — Sicatat</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="h-full bg-slate-100 text-slate-700 antialiased">
+<body class="h-full bg-latar text-slate-700 antialiased">
 
 @php
     $user = auth()->user();

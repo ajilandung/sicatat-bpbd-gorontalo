@@ -17,7 +17,14 @@
 |   navy        profesionalitas dan keterbacaan: sidebar, panel identitas,
 |               judul, serta tint pembeda yang perlu dibedakan dari `air`
 |               (misalnya lencana dan avatar peran Admin).
-|   slate       latar serta teks penunjang; putih untuk permukaan kartu.
+|   slate       teks penunjang, garis, dan permukaan netral di dalam kartu.
+|   latar       satu warna abu-abu sejuk untuk latar halaman (#e9eef5). Bukan
+|               `slate-100`: selisihnya dengan putih terlalu tipis (1,10:1)
+|               sehingga kartu putih terlihat menyatu dengan halaman. Warna ini
+|               memberi 1,17:1 — masih sangat muda, tetapi tepi kartu terbaca
+|               tanpa perlu bayangan yang berat atau garis yang tebal. Nuansa
+|               birunya diambil dari keluarga navy supaya tetap satu keluarga
+|               dengan warna identitas, bukan abu-abu netral yang dingin.
 |
 | Oranye pernah menjadi warna aksen di sini dan sudah dihapus seluruhnya atas
 | permintaan pemilik proyek. Jangan menghidupkannya kembali sebagai warna
@@ -52,8 +59,11 @@
     --color-air-800: #075985;
     --color-air-900: #0c4a6e;
 
+    /* Latar halaman — abu-abu sejuk, satu-satunya warna di bawah kartu */
+    --color-latar: #e9eef5;
+
     /* Bayangan bernuansa navy — kedalaman tipis tanpa gradient */
-    --shadow-kartu: 0 1px 2px rgb(20 38 57 / 0.04), 0 1px 3px rgb(20 38 57 / 0.06);
+    --shadow-kartu: 0 1px 2px rgb(20 38 57 / 0.06), 0 2px 6px -1px rgb(20 38 57 / 0.10);
     --shadow-naik: 0 4px 6px -2px rgb(20 38 57 / 0.05), 0 12px 24px -6px rgb(20 38 57 / 0.12);
     --shadow-panel: 0 1px 2px rgb(20 38 57 / 0.04), 0 8px 24px -12px rgb(20 38 57 / 0.18);
 
