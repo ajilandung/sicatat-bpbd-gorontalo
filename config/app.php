@@ -59,13 +59,22 @@ return [
     | Application Timezone
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | Seluruh pengguna sistem ini berada di Provinsi Gorontalo, yang memakai
+    | Waktu Indonesia Tengah (WITA, UTC+8). Karena itu zona waktunya dipatok
+    | ke Asia/Makassar, bukan UTC bawaan Laravel.
+    |
+    | Ini bukan soal selera penulisan jam. Dengan UTC, antara pukul 00.00 dan
+    | 08.00 WITA "hari ini" menurut server masih tanggal kemarin, sehingga
+    | validasi `before_or_equal:today` pada form penyaluran akan menolak
+    | kegiatan yang benar-benar terjadi hari itu, dan hitungan "kegiatan bulan
+    | ini" meleset pada pergantian bulan.
+    |
+    | Nilainya dapat ditimpa lewat `APP_TIMEZONE` bila suatu saat sistem ini
+    | dipakai instansi di zona waktu lain, tetapi bawaannya tetap WITA.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Makassar'),
 
     /*
     |--------------------------------------------------------------------------
