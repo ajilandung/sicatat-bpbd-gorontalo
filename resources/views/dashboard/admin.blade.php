@@ -6,19 +6,16 @@
 
     <x-ui.kepala-halaman
         judul="Dashboard Admin"
-        :deskripsi="'Selamat datang, '.auth()->user()->name.'. Ringkasan kesiapan sistem dan data yang sudah masuk.'">
+        :deskripsi="'Selamat datang, '.auth()->user()->name.'. Ringkasan kegiatan penyaluran bantuan air bersih dan kesiapan data sistem.'">
         <x-slot:aksi>
-            <x-ui.tombol :href="route('pengguna.create')">
+            <x-ui.tombol :href="route('penyaluran.create')">
                 <x-ikon nama="plus" class="size-4"/>
-                Tambah Pengguna
+                Input Penyaluran
             </x-ui.tombol>
         </x-slot:aksi>
     </x-ui.kepala-halaman>
 
-    <x-ui.notifikasi jenis="info" judul="Sistem sedang dibangun bertahap">
-        <strong>Fase 1</strong> — basis data, autentikasi, hak akses, dan manajemen pengguna — sudah selesai.
-        Kartu statistik penyaluran dan grafik bulanan menyusul pada Fase 4.
-    </x-ui.notifikasi>
+    @include('dashboard.partials.statistik')
 
     <h2 class="mt-8 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Pengguna Sistem</h2>
 
@@ -30,16 +27,6 @@
 
         <x-ui.kartu-statistik label="Akun nonaktif" :nilai="$jumlahPenggunaNonaktif" ikon="gembok"
                               catatan="Tidak dapat masuk ke sistem"/>
-    </div>
-
-    <h2 class="mt-8 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Data Penyaluran</h2>
-
-    <div class="mt-3 grid gap-4 sm:grid-cols-2">
-        <x-ui.kartu-statistik label="Total kegiatan penyaluran" :nilai="$jumlahPenyaluran" ikon="list" warna="air"
-                              catatan="Pencatatan dimulai pada Fase 3"/>
-
-        <x-ui.kartu-statistik label="Total air tersalur" :nilai="$totalLiter" satuan="liter" ikon="tetesan" warna="air"
-                              catatan="Dihitung dari seluruh kegiatan tercatat"/>
     </div>
 
     <h2 class="mt-8 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Kesiapan Data Master</h2>

@@ -322,7 +322,13 @@ Seluruh angka dihitung langsung lewat query agregasi, tanpa tabel ringkasan dan 
 
 Kartu terakhir ada karena `jumlah_kk` dan `jumlah_jiwa` boleh kosong: angka total tetap ditampilkan, tetapi disertai keterangan berapa data yang belum lengkap, sehingga pembaca tahu totalnya belum mencakup semua kegiatan.
 
-Semua logika agregasi dikumpulkan di satu kelas `App\Support\RekapPenyaluran` agar dashboard dan laporan memakai perhitungan yang sama persis — tidak ada dua versi rumus yang bisa berbeda hasilnya.
+Semua logika agregasi dikumpulkan di satu kelas `App\Support\RekapPenyaluran` agar dashboard dan laporan memakai perhitungan yang sama persis — tidak ada dua versi rumus yang bisa berbeda hasilnya. Kelas ini menerima filter dengan bentuk yang sama seperti `Penyaluran::scopeSaring()`, sehingga halaman laporan pada Fase 5 cukup mengoper filter yang sedang aktif; dashboard memanggilnya tanpa filter, yaitu seluruh data.
+
+Pencocokan tanggal di dalamnya memakai ulang scope `periode` milik model, bukan perbandingan sendiri, supaya batas awal dan akhir bulan diperlakukan persis sama dengan filter pada halaman riwayat.
+
+**Isi per role.** Ketiga role melihat kartu dan grafik penyaluran yang sama, sesuai peta route yang memberi FR-19 sampai FR-21 kepada semuanya. Yang membedakan hanya dua panel tambahan milik admin: kesiapan data master dan pengguna sistem. Bagian yang dipakai bersama berada di `dashboard/partials/statistik.blade.php`.
+
+**Grafik.** Digambar dengan Chart.js sebagai diagram batang volume air per bulan; jumlah kegiatan muncul pada keterangan saat kursor diarahkan ke sebuah batang, sehingga satu grafik menjawab dua pertanyaan tanpa memadati halaman. Hanya bagian Chart.js yang dipakai yang didaftarkan di `resources/js/app.js`, bukan bundel penuhnya. Bulan tanpa kegiatan tetap digambar bernilai nol supaya jeda antar musim kemarau terlihat apa adanya. Karena diagram tidak menyampaikan angka kepada pembaca layar, isi grafik yang sama juga dirender sebagai tabel yang tersembunyi secara visual.
 
 ---
 
