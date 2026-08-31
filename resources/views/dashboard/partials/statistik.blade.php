@@ -10,7 +10,27 @@
      agregasi berada, supaya dashboard dan laporan tidak pernah menampilkan dua
      angka berbeda untuk hal yang sama. --}}
 
-<h2 class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Ringkasan Penyaluran</h2>
+<div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Ringkasan Penyaluran</h2>
+
+    {{-- Filter periode berlaku untuk seluruh isi dashboard: kartu, peta,
+         grafik, dan kedua daftar di bawahnya. Formulirnya mengarah ke URL
+         yang sedang dibuka, sehingga satu berkas ini melayani dashboard
+         ketiga role tanpa perlu tahu route mana yang aktif. --}}
+    <form method="GET" action="{{ url()->current() }}" class="flex items-center gap-2">
+        <label for="periode" class="text-xs font-medium text-slate-500">Periode</label>
+
+        <div class="w-48">
+            <x-ui.pilihan nama="periode" :nilai="$periodeAktif" :opsi="$opsiPeriode"
+                          onchange="this.form.submit()"/>
+        </div>
+
+        {{-- Tanpa JavaScript, pilihan tetap dapat diterapkan. --}}
+        <noscript>
+            <x-ui.tombol varian="sekunder">Terapkan</x-ui.tombol>
+        </noscript>
+    </form>
+</div>
 
 <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <x-ui.kartu-statistik label="Total air tersalur" :nilai="$totalVolume" satuan="liter"
@@ -31,28 +51,33 @@
                           :catatan="'Bulan berjalan, termasuk data susulan'"/>
 </div>
 
-<div class="mt-4 grid gap-4 sm:grid-cols-2">
-    <x-ui.kartu-statistik label="Total KK terdampak" :nilai="$totalKk" satuan="KK"
-                          ikon="users" :catatan="$catatanKelengkapan"/>
+@include('dashboard.partials.ringkasan-wilayah')
 
-    <x-ui.kartu-statistik label="Total jiwa terdampak" :nilai="$totalJiwa" satuan="jiwa"
-                          ikon="users" :catatan="$catatanKelengkapan"/>
+{{-- Grafik bulanan (FR-21) berdampingan dengan dua angka pendukung: satu baris
+     penuh, sehingga ruang di samping grafik tidak terbuang. --}}
+<div class="mt-4 grid gap-4 lg:grid-cols-3">
+    <div class="lg:col-span-2">
+        <x-ui.grafik-bulanan :data="$grafikBulanan"
+                             deskripsi="Mengikuti periode yang dipilih, dikelompokkan menurut tanggal kegiatan di lapangan. Arahkan kursor ke sebuah batang untuk melihat jumlah kegiatannya."/>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+        <x-ui.kartu-statistik label="Total KK terdampak" :nilai="$totalKk" satuan="KK"
+                              ikon="users" warna="air" :catatan="$catatanKelengkapan"/>
+
+        <x-ui.kartu-statistik label="Total jiwa terdampak" :nilai="$totalJiwa" satuan="jiwa"
+                              ikon="users" warna="navy" :catatan="$catatanKelengkapan"/>
+    </div>
 </div>
 
 @if ($kegiatanTanpaJumlahWarga > 0)
     <x-ui.notifikasi jenis="peringatan" class="mt-4">
-        Kedua angka di atas dihitung hanya dari kegiatan yang datanya terisi. Laporan lapangan memang kerap
+        Angka KK dan jiwa dihitung hanya dari kegiatan yang datanya terisi. Laporan lapangan memang kerap
         hanya mencantumkan volume air, sehingga totalnya belum mencakup seluruh kegiatan.
     </x-ui.notifikasi>
 @endif
 
-{{-- Grafik penyaluran per bulan (FR-21) --}}
-<div class="mt-8">
-    <x-ui.grafik-bulanan :data="$grafikBulanan"
-                         deskripsi="Dua belas bulan terakhir, dikelompokkan menurut tanggal kegiatan di lapangan. Arahkan kursor ke sebuah batang untuk melihat jumlah kegiatannya."/>
-</div>
-
-<div class="mt-8 grid gap-6 lg:grid-cols-2">
+<div class="mt-4 grid gap-4 lg:grid-cols-2">
     {{-- Wilayah paling sering menerima bantuan --}}
     <x-ui.kartu judul="Wilayah Paling Sering Menerima"
                 deskripsi="Lima desa/kelurahan dengan kegiatan penyaluran terbanyak."

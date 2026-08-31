@@ -13,9 +13,9 @@
 
      Bulan tanpa kegiatan tetap digambar bernilai nol supaya jeda antar musim
      kemarau terlihat apa adanya, bukan tersamarkan oleh sumbu yang melompat. --}}
-<x-ui.kartu :judul="$judul" :deskripsi="$deskripsi">
+<x-ui.kartu :judul="$judul" :deskripsi="$deskripsi" class="h-full">
     @if ($adaData)
-        <div class="h-72"
+        <div class="h-64 sm:h-72 xl:h-80"
              x-data="{
                 titik: @js($titik),
                 grafik: null,

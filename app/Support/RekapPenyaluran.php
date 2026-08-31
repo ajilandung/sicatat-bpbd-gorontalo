@@ -73,6 +73,75 @@ class RekapPenyaluran
     }
 
     /**
+     * Jumlah kecamatan yang wilayahnya pernah menerima bantuan.
+     *
+     * Tabel penyaluran hanya menyimpan id desa (§7), jadi kecamatannya
+     * ditelusuri lewat desa, lalu dihitung berbeda — satu kecamatan dengan
+     * tiga desa penerima tetap dihitung satu.
+     */
+    public function jumlahKecamatanPenerima(): int
+    {
+        return DB::table('desa_penyaluran')
+            ->join('desas', 'desas.id', '=', 'desa_penyaluran.desa_id')
+            ->whereIn('desa_penyaluran.penyaluran_id', $this->dasar()->select('penyalurans.id'))
+            ->distinct()
+            ->count('desas.kecamatan_id');
+    }
+
+    /**
+     * Rekap per kabupaten/kota untuk pewarnaan peta, dikunci menurut kode
+     * wilayah Kemendagri supaya cocok dengan berkas batas wilayah.
+     *
+     * @return Collection<string, object{kode: string, nama: string, jenis: string, jumlah_kegiatan: int, jumlah_desa: int, total_liter: int}>
+     */
+    public function rekapKabupaten(): Collection
+    {
+        return DB::table('desa_penyaluran')
+            ->join('desas', 'desas.id', '=', 'desa_penyaluran.desa_id')
+            ->join('kecamatans', 'kecamatans.id', '=', 'desas.kecamatan_id')
+            ->join('kabupatens', 'kabupatens.id', '=', 'kecamatans.kabupaten_id')
+            ->join('penyalurans', 'penyalurans.id', '=', 'desa_penyaluran.penyaluran_id')
+            ->whereIn('desa_penyaluran.penyaluran_id', $this->dasar()->select('penyalurans.id'))
+            ->groupBy('kabupatens.kode', 'kabupatens.nama', 'kabupatens.jenis')
+            ->select('kabupatens.kode', 'kabupatens.nama', 'kabupatens.jenis')
+            ->selectRaw('COUNT(DISTINCT desa_penyaluran.penyaluran_id) as jumlah_kegiatan')
+            ->selectRaw('COUNT(DISTINCT desa_penyaluran.desa_id) as jumlah_desa')
+            ->get()
+            ->keyBy('kode');
+    }
+
+    /**
+     * Rentang tanggal kegiatan yang benar-benar ada datanya, dituliskan
+     * seperti judul infografis BPBD: "Juli – Agustus 2026".
+     *
+     * Dipakai sebagai keterangan periode ketika dashboard menampilkan seluruh
+     * data, karena rentang sesungguhnya lebih jujur daripada menulis
+     * "seluruh waktu".
+     */
+    public function labelPeriode(): string
+    {
+        $baris = $this->dasar()
+            ->selectRaw('MIN(tanggal_penyaluran) as mulai, MAX(tanggal_penyaluran) as akhir')
+            ->first();
+
+        if (! $baris?->mulai) {
+            return 'Belum ada data';
+        }
+
+        $mulai = Carbon::parse($baris->mulai);
+        $akhir = Carbon::parse($baris->akhir);
+
+        if ($mulai->isSameMonth($akhir)) {
+            return $this->namaBulan($mulai, panjang: true);
+        }
+
+        // Tahun cukup ditulis sekali bila keduanya berada di tahun yang sama.
+        return $mulai->year === $akhir->year
+            ? $this->namaBulan($mulai, panjang: true, tanpaTahun: true).' – '.$this->namaBulan($akhir, panjang: true)
+            : $this->namaBulan($mulai, panjang: true).' – '.$this->namaBulan($akhir, panjang: true);
+    }
+
+    /**
      * Kegiatan yang terjadi pada bulan berjalan.
      */
     public function kegiatanBulanIni(): int
@@ -125,7 +194,7 @@ class RekapPenyaluran
      */
     public function volumePerBulan(int $jumlahBulan = 12): Collection
     {
-        $mulai = now()->startOfMonth()->subMonths($jumlahBulan - 1);
+        [$mulai, $jumlahBulan] = $this->rentangGrafik($jumlahBulan);
 
         $tercatat = $this->dasar()
             ->periode($mulai->toDateString(), null)
@@ -151,6 +220,30 @@ class RekapPenyaluran
                     'jumlah_kegiatan' => (int) ($baris->jumlah_kegiatan ?? 0),
                 ];
             });
+    }
+
+    /**
+     * Bulan mana saja yang digambar grafik.
+     *
+     * Tanpa filter: dua belas bulan terakhir. Bila dashboard sedang disaring
+     * ke suatu periode, grafik mengikuti periode itu — memaksakan dua belas
+     * bulan hanya akan menghasilkan deretan batang nol di luar filter.
+     * Dibatasi 24 bulan supaya sumbunya tetap terbaca.
+     *
+     * @return array{0: Carbon, 1: int}
+     */
+    private function rentangGrafik(int $bawaan): array
+    {
+        $mulaiFilter = $this->filter['tanggal_mulai'] ?? null;
+
+        if (blank($mulaiFilter)) {
+            return [now()->startOfMonth()->subMonths($bawaan - 1), $bawaan];
+        }
+
+        $mulai = Carbon::parse($mulaiFilter)->startOfMonth();
+        $akhir = Carbon::parse($this->filter['tanggal_akhir'] ?? null ?: now())->startOfMonth();
+
+        return [$mulai, min(max((int) $mulai->diffInMonths($akhir) + 1, 1), 24)];
     }
 
     /**
@@ -207,15 +300,17 @@ class RekapPenyaluran
      * Ditulis sendiri, bukan lewat `translatedFormat`, karena locale aplikasi
      * masih `en` sehingga nama bulan bawaan Carbon berbahasa Inggris.
      */
-    private function namaBulan(Carbon $bulan, bool $panjang = false): string
+    private function namaBulan(Carbon $bulan, bool $panjang = false, bool $tanpaTahun = false): string
     {
         $ringkas = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
 
         $lengkap = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
             'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-        return $panjang
-            ? $lengkap[$bulan->month - 1].' '.$bulan->format('Y')
-            : $ringkas[$bulan->month - 1].' '.$bulan->format('y');
+        if (! $panjang) {
+            return $ringkas[$bulan->month - 1].' '.$bulan->format('y');
+        }
+
+        return $lengkap[$bulan->month - 1].($tanpaTahun ? '' : ' '.$bulan->format('Y'));
     }
 }

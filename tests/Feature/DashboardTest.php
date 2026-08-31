@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Desa;
 use App\Models\Instansi;
+use App\Models\Kabupaten;
 use App\Models\Kecamatan;
 use App\Models\Penyaluran;
 use App\Models\User;
@@ -219,6 +220,87 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertDontSee('Kesiapan Data Master')
             ->assertDontSee('Pengguna Sistem');
+    }
+
+    public function test_jumlah_kecamatan_penerima_dihitung_tanpa_pengulangan(): void
+    {
+        $kecamatan = Kecamatan::factory()->create();
+
+        // Dua desa pada kecamatan yang sama tetap dihitung satu kecamatan.
+        $this->kegiatan('2026-08-01', 4000, [$this->desa('Tongo', $kecamatan)]);
+        $this->kegiatan('2026-08-03', 4000, [$this->desa('Tolotio', $kecamatan)]);
+        $this->kegiatan('2026-08-07', 4000, [$this->desa('Pinomontiga')]);
+
+        $this->assertSame(2, (new RekapPenyaluran)->jumlahKecamatanPenerima());
+    }
+
+    public function test_rekap_kabupaten_dikunci_menurut_kode_wilayah_untuk_peta(): void
+    {
+        $kabupaten = Kabupaten::factory()->create(['kode' => '75.02', 'nama' => 'Boalemo']);
+        $kecamatan = Kecamatan::factory()->create(['kabupaten_id' => $kabupaten->id]);
+
+        $tongo = $this->desa('Tongo', $kecamatan);
+        $this->kegiatan('2026-08-01', 4000, [$tongo]);
+        $this->kegiatan('2026-08-03', 4000, [$tongo, $this->desa('Tolotio', $kecamatan)]);
+
+        $rekap = (new RekapPenyaluran)->rekapKabupaten();
+
+        // Kodenya menjadi kunci supaya path peta dapat dicocokkan langsung.
+        $this->assertSame(2, (int) $rekap['75.02']->jumlah_kegiatan);
+        $this->assertSame(2, (int) $rekap['75.02']->jumlah_desa);
+    }
+
+    public function test_filter_periode_menyaring_seluruh_isi_dashboard(): void
+    {
+        $this->kegiatan('2026-08-12', 16000, [$this->desa('Mulyonegoro')]);
+        $this->kegiatan('2026-03-04', 90000, [$this->desa('Tolotio')]);
+
+        $pimpinan = User::factory()->pimpinan()->create();
+
+        // Bulan ini: hanya kegiatan Agustus yang ikut terhitung.
+        $this->actingAs($pimpinan)
+            ->get('/dashboard/pimpinan?periode=bulan-ini')
+            ->assertOk()
+            ->assertSee('16.000')
+            ->assertDontSee('90.000')
+            ->assertSee('Bulan ini');
+
+        // Tanpa filter, keduanya masuk dan keterangan periode menyebut
+        // rentang tanggal kegiatan yang sebenarnya.
+        $this->actingAs($pimpinan)
+            ->get('/dashboard/pimpinan')
+            ->assertOk()
+            ->assertSee('106.000')
+            ->assertSee('Maret – Agustus 2026');
+    }
+
+    public function test_periode_yang_tidak_dikenal_diperlakukan_sebagai_seluruh_waktu(): void
+    {
+        $this->kegiatan('2026-03-04', 90000, [$this->desa('Tolotio')]);
+
+        $this->actingAs(User::factory()->pimpinan()->create())
+            ->get('/dashboard/pimpinan?periode=entah-apa')
+            ->assertOk()
+            ->assertSee('90.000');
+    }
+
+    public function test_ringkasan_wilayah_menampilkan_angka_dari_basis_data(): void
+    {
+        $kabupaten = Kabupaten::factory()->create(['kode' => '75.02', 'nama' => 'Boalemo']);
+        $kecamatan = Kecamatan::factory()->create(['kabupaten_id' => $kabupaten->id]);
+
+        $this->kegiatan('2026-08-12', 16000, [$this->desa('Mulyonegoro', $kecamatan)]);
+
+        $this->actingAs(User::factory()->pimpinan()->create())
+            ->get('/dashboard/pimpinan')
+            ->assertOk()
+            ->assertSee('Ringkasan Wilayah Penyaluran Air Bersih')
+            ->assertSee('Kecamatan')
+            ->assertSee('Jiwa Terdampak')
+            // Kabupaten penerima disebut pada keterangan peta, kabupaten lain
+            // ditandai belum ada penyaluran.
+            ->assertSee('Kab. Boalemo')
+            ->assertSee('Kab. Pohuwato');
     }
 
     public function test_dashboard_tetap_terbuka_saat_belum_ada_data(): void
