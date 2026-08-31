@@ -25,8 +25,8 @@
         [
             'judul' => 'Penyaluran',
             'item' => [
-                ['label' => 'Input Penyaluran', 'ikon' => 'plus', 'siap' => false, 'fase' => 3, 'admin' => true],
-                ['label' => 'Riwayat Penyaluran', 'ikon' => 'list', 'siap' => false, 'fase' => 3],
+                ['label' => 'Input Penyaluran', 'route' => 'penyaluran.create', 'aktifJika' => 'penyaluran.create', 'ikon' => 'plus', 'siap' => true, 'admin' => true],
+                ['label' => 'Riwayat Penyaluran', 'route' => 'penyaluran.index', 'aktifJika' => 'penyaluran.index', 'ikon' => 'list', 'siap' => true],
             ],
         ],
         [

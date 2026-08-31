@@ -69,6 +69,8 @@ erDiagram
     INSTANSIS   ||--o{ INSTANSI_PENYALURAN : "melaksanakan"
     PENYALURANS ||--o{ INSTANSI_PENYALURAN : "dikerjakan oleh"
     USERS       ||--o{ PENYALURANS         : "menginput"
+    PENYALURANS ||--o{ RIWAYAT_PENYALURANS : "dicatat perubahannya"
+    USERS       ||--o{ RIWAYAT_PENYALURANS : "mengubah"
 
     KABUPATENS {
         bigint   id PK
@@ -147,6 +149,15 @@ erDiagram
         bigint id PK
         bigint penyaluran_id FK
         bigint instansi_id FK
+    }
+
+    RIWAYAT_PENYALURANS {
+        bigint   id PK
+        bigint   penyaluran_id FK
+        bigint   user_id FK   "pelaku perubahan"
+        string   aksi         "dibuat | diubah | dihapus | dipulihkan"
+        json     perubahan    "nullable, nilai sebelum-sesudah"
+        datetime created_at
     }
 ```
 
@@ -333,6 +344,31 @@ Tabel penghubung. Satu kegiatan kerap dikerjakan beberapa instansi bersama-sama.
 
 ---
 
+### 3.9 `riwayat_penyalurans` — Riwayat Perubahan Data Penyaluran
+
+Jejak audit untuk data penyaluran. Ada karena data historis boleh dikoreksi belakangan (§3.6), sehingga koreksi harus tetap dapat ditelusuri.
+
+| Kolom | Tipe | Null | Keterangan |
+|---|---|:---:|---|
+| `id` | `bigint unsigned` PK | ✗ | |
+| `penyaluran_id` | `bigint unsigned` FK | ✗ | → `penyalurans.id`, `ON DELETE CASCADE` |
+| `user_id` | `bigint unsigned` FK | ✗ | Pelaku perubahan. → `users.id`, `ON DELETE RESTRICT` |
+| `aksi` | `varchar(20)` | ✗ | `dibuat`, `diubah`, `dihapus`, atau `dipulihkan` |
+| `perubahan` | `json` | ✓ | Nilai sebelum-sesudah per kolom yang berubah |
+| `created_at` | `timestamp` | ✓ | Waktu perubahan |
+
+**Index:** gabungan (`penyaluran_id`, `id`).
+
+**Kenapa tabel terpisah, bukan mengandalkan `penyalurans.user_id`.** Kolom itu hanya menyimpan penginput pertama, sehingga tidak dapat menjawab "siapa yang mengubah angka ini dan kapan". Padahal justru koreksi susulan yang paling perlu ditelusuri.
+
+**Bentuk `perubahan`.** Hanya kolom yang benar-benar berubah yang dicatat, mis. `{"volume_liter": {"dari": 4000, "ke": 16000}}`. Menyimpan tanpa mengubah apa pun tidak menambah baris riwayat. Untuk `dihapus` dan `dipulihkan` kolom ini `NULL`, karena isi datanya tidak berubah.
+
+**Desa dan instansi dicatat sebagai nama, bukan id.** Dengan begitu riwayat lama tetap terbaca walaupun master datanya berubah nama di kemudian hari.
+
+**Tidak ada `updated_at`.** Baris riwayat tidak pernah diubah setelah tercatat.
+
+---
+
 ## 4. Aturan Integritas Referensial
 
 Foreign key ke **master data** memakai `ON DELETE RESTRICT`, bukan `CASCADE`.
@@ -351,6 +387,7 @@ Di atas pengaman basis data itu, **aplikasi sama sekali tidak menyediakan pengha
 | `instansis` | tidak ada — set `aktif = false` | ditolak database |
 | `users` | tidak ada — set `aktif = false` | ditolak database |
 | `penyalurans` | boleh (soft delete, FR-10) | baris penghubungnya ikut terhapus |
+| `riwayat_penyalurans` | tidak ada — hanya bertambah | — |
 
 ---
 
@@ -372,6 +409,7 @@ Urutan migrasi mengikuti arah ketergantungan foreign key:
 | 10 | `2026_08_29_100001_add_auth_fields_to_users_table` | Tambah `harus_ganti_password`, `last_login_at` |
 | 11 | `2026_08_31_100001_rename_tanggal_on_penyalurans_table` | `tanggal` → `tanggal_penyaluran` (§3.6) |
 | 12 | `2026_08_31_100002_add_aktif_to_desas_table` | Tambah `aktif` pada desa (§3.4) |
+| 13 | `2026_08_31_100003_create_riwayat_penyalurans_table` | FK → `penyalurans`, `users` (§3.9) |
 
 Contoh migrasi tabel inti:
 
@@ -407,7 +445,8 @@ Schema::create('penyalurans', function (Blueprint $table) {
 | `Desa` | `belongsTo(Kecamatan)`, `belongsToMany(Penyaluran)` | |
 | `Instansi` | `belongsToMany(Penyaluran)` | |
 | `User` | `hasMany(Penyaluran)` | Data yang diinput pengguna tersebut |
-| `Penyaluran` | `belongsToMany(Desa)`, `belongsToMany(Instansi)`, `belongsTo(User)` | |
+| `Penyaluran` | `belongsToMany(Desa)`, `belongsToMany(Instansi)`, `belongsTo(User)`, `hasMany(RiwayatPenyaluran)` | |
+| `RiwayatPenyaluran` | `belongsTo(Penyaluran)`, `belongsTo(User)` | Satu baris jejak audit (§3.9) |
 
 Untuk menghindari masalah query N+1 pada tabel riwayat, relasi dimuat sekaligus:
 
@@ -415,11 +454,30 @@ Untuk menghindari masalah query N+1 pada tabel riwayat, relasi dimuat sekaligus:
 Penyaluran::with(['desas.kecamatan.kabupaten', 'instansis', 'user'])
 ```
 
-Model `Penyaluran` menyediakan dua pembantu:
+Model `Penyaluran` menyediakan beberapa pembantu:
 
 ```php
 $penyaluran->angkaGabungan();  // true bila mencakup lebih dari satu desa
 $penyaluran->volumePerDesa();  // volume dibagi rata ke desa penerima
+$penyaluran->rekaman();        // isi data sebagai array, bahan riwayat perubahan
+```
+
+Seluruh filter halaman riwayat dikumpulkan pada satu *local scope* agar halaman laporan dan export nanti memakai penyaringan yang sama persis:
+
+```php
+Penyaluran::saring([
+    'cari' => 'Tongo',
+    'tanggal_mulai' => '2026-08-01',
+    'tanggal_akhir' => '2026-08-31',
+    'kabupaten_id' => 2,
+    // kecamatan_id, desa_id, instansi_id, user_id
+]);
+```
+
+Kegiatan serupa dideteksi lewat satu pembantu statis, dipakai sebelum data disimpan:
+
+```php
+Penyaluran::serupa('2026-08-12', [$desaId], kecualiId: $penyaluran?->id);
 ```
 
 ---

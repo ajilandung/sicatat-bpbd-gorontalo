@@ -6,9 +6,11 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstansiController;
 use App\Http\Controllers\Pengguna\PenggunaController;
 use App\Http\Controllers\Pengguna\ResetPasswordController;
+use App\Http\Controllers\PenyaluranController;
 use App\Http\Controllers\Wilayah\DesaController;
 use App\Http\Controllers\Wilayah\KabupatenController;
 use App\Http\Controllers\Wilayah\KecamatanController;
+use App\Http\Controllers\WilayahOptionController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +39,38 @@ Route::middleware(['auth', 'aktif'])->group(function () {
             ->middleware('role:petugas')->name('dashboard.petugas');
         Route::get('dashboard/pimpinan', [DashboardController::class, 'pimpinan'])
             ->middleware('role:pimpinan')->name('dashboard.pimpinan');
+
+        // Modul Penyaluran (FR-08 sampai FR-18). Daftar dan detail terbuka
+        // untuk seluruh role; menambah, mengubah, menghapus, dan memulihkan
+        // hanya untuk admin. Route yang memakai kata tetap seperti `create`,
+        // `terhapus`, dan `pulihkan` didaftarkan lebih dulu agar tidak
+        // tertangkap sebagai id oleh route detail `{penyaluran}`.
+        Route::prefix('penyaluran')->name('penyaluran.')->group(function () {
+            Route::get('/', [PenyaluranController::class, 'index'])->name('index');
+
+            Route::middleware('role:admin')->group(function () {
+                Route::get('terhapus', [PenyaluranController::class, 'terhapus'])->name('terhapus');
+                Route::get('create', [PenyaluranController::class, 'create'])->name('create');
+                Route::post('/', [PenyaluranController::class, 'store'])->name('store');
+
+                Route::get('{penyaluran}/edit', [PenyaluranController::class, 'edit'])->name('edit');
+                Route::put('{penyaluran}', [PenyaluranController::class, 'update'])->name('update');
+                Route::delete('{penyaluran}', [PenyaluranController::class, 'destroy'])->name('destroy');
+                Route::patch('{penyaluran}/pulihkan', [PenyaluranController::class, 'pulihkan'])->name('pulihkan');
+            });
+
+            // `withTrashed` supaya admin masih bisa memeriksa isi data yang
+            // terhapus sebelum memutuskan memulihkannya. Role lain ditolak
+            // di controller.
+            Route::get('{penyaluran}', [PenyaluranController::class, 'show'])->name('show')->withTrashed();
+        });
+
+        // Dropdown wilayah bertingkat (§7). Dipakai form input dan panel
+        // filter, jadi terbuka untuk seluruh role yang sudah login.
+        Route::prefix('options')->name('options.')->group(function () {
+            Route::get('kecamatan', [WilayahOptionController::class, 'kecamatan'])->name('kecamatan');
+            Route::get('desa', [WilayahOptionController::class, 'desa'])->name('desa');
+        });
 
         // Manajemen Pengguna — khusus Admin (FR-02).
         Route::middleware('role:admin')->group(function () {
@@ -71,6 +105,5 @@ Route::middleware(['auth', 'aktif'])->group(function () {
                 ->name('instansi.status');
         });
 
-        // Menu Penyaluran menyusul pada Fase 3.
     });
 });

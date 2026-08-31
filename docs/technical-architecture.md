@@ -244,10 +244,12 @@ Dua aturan otorisasi bergantung pada objek, bukan sekadar role, sehingga ditanga
 | GET | `/penyaluran` | `PenyaluranController@index` | semua | FR-15, 16, 17, 18 |
 | GET | `/penyaluran/create` | `PenyaluranController@create` | admin | FR-08 |
 | POST | `/penyaluran` | `PenyaluranController@store` | admin | FR-08, 11–14 |
-| GET | `/penyaluran/{id}` | `PenyaluranController@show` | semua | FR-15 |
+| GET | `/penyaluran/terhapus` | `PenyaluranController@terhapus` — data yang sudah dihapus | admin | FR-10 |
+| GET | `/penyaluran/{id}` | `PenyaluranController@show` — `withTrashed`, data terhapus hanya untuk admin | semua | FR-15 |
 | GET | `/penyaluran/{id}/edit` | `PenyaluranController@edit` | admin | FR-09 |
 | PUT | `/penyaluran/{id}` | `PenyaluranController@update` | admin | FR-09 |
-| DELETE | `/penyaluran/{id}` | `PenyaluranController@destroy` | admin | FR-10 |
+| DELETE | `/penyaluran/{id}` | `PenyaluranController@destroy` — *soft delete* | admin | FR-10 |
+| PATCH | `/penyaluran/{id}/pulihkan` | `PenyaluranController@pulihkan` | admin | FR-10 |
 | GET | `/laporan` | `LaporanController@index` | semua | FR-22 |
 | GET | `/laporan/pdf` | `LaporanController@pdf` | semua | FR-23 |
 | GET | `/laporan/excel` | `LaporanController@excel` | semua | FR-24 |
@@ -363,7 +365,13 @@ Aturan bisnis BPBD: **data lapangan tidak selalu sampai ke admin pada hari kegia
 | Filter & laporan | Rentang tanggal dicocokkan ke `tanggal_penyaluran` |
 | Export | Berkas PDF/Excel yang sudah diunduh adalah *snapshot* saat itu dan tidak ikut berubah. Export ulang untuk periode yang sama wajib memuat seluruh data terbaru |
 
-**Riwayat perubahan.** Karena data historis boleh dikoreksi belakangan, setiap perubahan pada data penyaluran dicatat: siapa yang mengubah, kapan, dan nilai sebelum/sesudahnya. Ini melengkapi `user_id` yang hanya menyimpan penginput. Tabel dan implementasinya dibangun bersama modul penyaluran di **Fase 3**, sebab objek yang dicatat baru ada di fase itu.
+**Riwayat perubahan.** Karena data historis boleh dikoreksi belakangan, setiap perubahan pada data penyaluran dicatat: siapa yang mengubah, kapan, dan nilai sebelum/sesudahnya. Ini melengkapi `user_id` yang hanya menyimpan penginput.
+
+Diwujudkan sebagai tabel `riwayat_penyalurans` (Database Schema §3.9), bukan paket pihak ketiga, agar label aksinya berbahasa Indonesia dan bentuk datanya sepenuhnya terkendali. Empat aksi dicatat: `dibuat`, `diubah`, `dihapus`, dan `dipulihkan`. Hanya kolom yang benar-benar berubah yang disimpan, sehingga menyimpan tanpa mengubah apa pun tidak menambah baris riwayat. Panelnya tampil di halaman detail penyaluran dan **hanya terlihat oleh admin** — yang membacanya adalah pihak yang juga berwenang mengoreksi datanya.
+
+**Penghapusan yang dapat dibatalkan.** `destroy` hanya menandai `deleted_at`, dan halaman **Data Terhapus** (`/penyaluran/terhapus`, khusus admin) menyediakan tombol Pulihkan. Tanpa halaman itu, janji "kesalahan hapus masih bisa dipulihkan" hanya berlaku bagi yang punya akses basis data.
+
+**Peringatan kegiatan serupa.** Sebelum menyimpan, sistem memeriksa apakah sudah ada kegiatan lain pada tanggal yang sama yang menyentuh salah satu desa terpilih. Bila ada, form dikembalikan beserta daftar kegiatan tersebut dan admin diminta menegaskan lewat kotak konfirmasi. Duplikat tetap **tidak dilarang** — satu desa memang bisa menerima lebih dari satu kegiatan dalam sehari (§12.2 #2) — sistem hanya memastikan admin sudah melihatnya lebih dulu.
 
 ---
 
