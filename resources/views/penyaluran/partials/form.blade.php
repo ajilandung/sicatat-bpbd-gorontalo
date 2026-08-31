@@ -1,9 +1,25 @@
 @php
     $ubah = isset($penyaluran);
-    $instansiTerpilih = collect(old('instansi_id', $ubah ? $penyaluran->instansis->pluck('id')->all() : []))
-        ->map(fn ($id) => (string) $id)
-        ->all();
     $duplikat = session('duplikat', []);
+
+    // Instansi disiapkan sebagai daftar sederhana agar dapat diolah Alpine.
+    // Isian yang baru saja gagal divalidasi didahulukan supaya pilihan admin
+    // tidak hilang saat form ditampilkan ulang.
+    $opsiInstansi = $daftarInstansi
+        ->map(fn ($instansi) => [
+            'id' => $instansi->id,
+            'nama' => $instansi->nama,
+            'aktif' => (bool) $instansi->aktif,
+        ])
+        ->values();
+
+    $idInstansiTerpilih = collect(old('instansi_id', $ubah ? $penyaluran->instansis->pluck('id')->all() : []))
+        ->map(fn ($id) => (int) $id)
+        ->all();
+
+    $instansiTerpilih = $opsiInstansi
+        ->whereIn('id', $idInstansiTerpilih)
+        ->values();
 @endphp
 
 {{-- Form input kegiatan penyaluran (FR-08 sampai FR-14).
@@ -25,6 +41,10 @@
         terpilih: @js($desaTerpilih),
         daftarKabupaten: @js(collect($opsiKabupaten)->map(fn ($nama, $id) => ['id' => (string) $id, 'nama' => $nama])->values()),
         konfirmasiDuplikat: @js($duplikat !== []),
+
+        instansiId: '',
+        daftarInstansi: @js($opsiInstansi),
+        instansiTerpilih: @js($instansiTerpilih),
 
         async muatKecamatan() {
             this.kecamatanId = '';
@@ -71,6 +91,30 @@
 
         hapus(id) {
             this.terpilih = this.terpilih.filter((desa) => String(desa.id) !== String(id));
+        },
+
+        instansiSudahDipilih(id) {
+            return this.instansiTerpilih.some((instansi) => String(instansi.id) === String(id));
+        },
+
+        instansiTersisa() {
+            return this.daftarInstansi.filter((instansi) => ! this.instansiSudahDipilih(instansi.id));
+        },
+
+        tambahInstansi() {
+            const dipilih = this.daftarInstansi.find((instansi) => String(instansi.id) === String(this.instansiId));
+
+            if (dipilih && ! this.instansiSudahDipilih(dipilih.id)) {
+                this.instansiTerpilih.push(dipilih);
+            }
+
+            // Dikosongkan lagi supaya dropdown kembali ke ajakan memilih,
+            // bukan menampilkan instansi yang barusan ditambahkan.
+            this.instansiId = '';
+        },
+
+        hapusInstansi(id) {
+            this.instansiTerpilih = this.instansiTerpilih.filter((instansi) => String(instansi.id) !== String(id));
         },
 
         lanjutSimpan() {
@@ -221,22 +265,61 @@
                     <a href="{{ route('instansi.index') }}" class="font-semibold underline">Data Instansi</a>.
                 </x-ui.notifikasi>
             @else
-                <div class="grid gap-x-6 gap-y-1 sm:grid-cols-2">
-                    @foreach ($daftarInstansi as $instansi)
-                        <label class="flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-slate-50">
-                            <input type="checkbox" name="instansi_id[]" value="{{ $instansi->id }}"
-                                   @checked(in_array((string) $instansi->id, $instansiTerpilih, true))
-                                   class="mt-0.5 size-4 rounded border-slate-300 text-air-700 focus:ring-air-500">
+                {{-- Dipilih lewat dropdown, sama seperti panel filter pada halaman
+                     riwayat. Bedanya, di sini pilihan tidak menggantikan pilihan
+                     sebelumnya melainkan menambahkannya ke daftar di bawah, karena
+                     satu kegiatan boleh dikerjakan beberapa instansi sekaligus. --}}
+                <div class="max-w-md">
+                    <label for="pemilih_instansi" class="sr-only">Tambahkan instansi pelaksana</label>
 
-                            <span class="min-w-0">
-                                <span class="block text-sm text-navy-900">{{ $instansi->nama }}</span>
+                    <select id="pemilih_instansi" x-model="instansiId" @change="tambahInstansi()"
+                            :disabled="instansiTersisa().length === 0"
+                            class="block h-11 w-full rounded-lg border-slate-300 py-0 text-sm text-navy-900
+                                   shadow-kartu transition-colors focus:border-air-500 focus:ring-1
+                                   focus:ring-air-500 disabled:bg-slate-100 disabled:text-slate-400">
+                        <option value=""
+                                x-text="instansiTersisa().length === 0
+                                    ? 'Semua instansi sudah dipilih'
+                                    : 'Pilih instansi pelaksana'"></option>
 
-                                @unless ($instansi->aktif)
-                                    <span class="text-xs text-amber-700">sudah dinonaktifkan</span>
-                                @endunless
+                        <template x-for="instansi in instansiTersisa()" :key="instansi.id">
+                            <option :value="instansi.id"
+                                    x-text="instansi.nama + (instansi.aktif ? '' : ' (nonaktif)')"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="mt-3">
+                    <p class="text-xs font-medium text-slate-500">
+                        Terpilih: <span x-text="instansiTerpilih.length"></span> instansi
+                    </p>
+
+                    <div class="mt-2 flex flex-wrap gap-2" x-show="instansiTerpilih.length > 0" x-cloak>
+                        <template x-for="instansi in instansiTerpilih" :key="instansi.id">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-air-50 py-1 pl-3 pr-1
+                                         text-xs font-medium text-air-800 ring-1 ring-inset ring-air-600/20">
+                                <input type="hidden" name="instansi_id[]" :value="instansi.id">
+
+                                <span>
+                                    <span x-text="instansi.nama"></span>
+                                    <span class="font-normal text-amber-700" x-show="! instansi.aktif"
+                                          x-cloak>· nonaktif</span>
+                                </span>
+
+                                <button type="button" @click="hapusInstansi(instansi.id)"
+                                        class="flex size-5 items-center justify-center rounded-full text-air-700
+                                               transition-colors hover:bg-air-100 hover:text-air-900
+                                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500">
+                                    <x-ikon nama="silang" class="size-3.5"/>
+                                    <span class="sr-only">Hapus dari daftar pelaksana</span>
+                                </button>
                             </span>
-                        </label>
-                    @endforeach
+                        </template>
+                    </div>
+
+                    <p x-show="instansiTerpilih.length === 0" class="mt-2 text-sm text-slate-400">
+                        Belum ada instansi pelaksana yang dipilih.
+                    </p>
                 </div>
             @endif
 

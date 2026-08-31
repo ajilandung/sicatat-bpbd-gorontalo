@@ -296,6 +296,47 @@ class PenyaluranTest extends TestCase
         $this->assertCount(2, $penyaluran->desas);
     }
 
+    public function test_form_ubah_menampilkan_desa_dan_instansi_yang_sudah_terpilih(): void
+    {
+        $admin = $this->admin();
+
+        $penyaluran = Penyaluran::factory()->create(['user_id' => $admin->id]);
+        $penyaluran->desas()->attach($this->desa(nama: 'Mulyonegoro')->id);
+        $penyaluran->instansis()->attach(Instansi::factory()->create(['nama' => 'PDAM Bone Bolango'])->id);
+
+        // Instansi lain tetap ditawarkan, tetapi tidak boleh ikut terpilih.
+        Instansi::factory()->create(['nama' => 'Polsek Bone Pantai']);
+
+        $halaman = $this->actingAs($admin)
+            ->get("/penyaluran/{$penyaluran->id}/edit")
+            ->assertOk();
+
+        $isi = $halaman->getContent();
+
+        // Keduanya muncul sebagai pilihan, tetapi hanya yang benar-benar
+        // tercatat yang masuk ke daftar terpilih.
+        $this->assertStringContainsString('PDAM Bone Bolango', $isi);
+        $this->assertStringContainsString('Polsek Bone Pantai', $isi);
+        $this->assertStringContainsString('Mulyonegoro', $isi);
+
+        $terpilih = $this->antaraPenanda($isi, 'instansiTerpilih');
+        $this->assertStringContainsString('PDAM Bone Bolango', $terpilih);
+        $this->assertStringNotContainsString('Polsek Bone Pantai', $terpilih);
+    }
+
+    /**
+     * Potongan JSON milik satu properti pada atribut `x-data`, dipakai untuk
+     * memeriksa isi daftar terpilih tanpa ikut membaca daftar pilihan penuh.
+     */
+    private function antaraPenanda(string $isi, string $properti): string
+    {
+        $mulai = strpos($isi, $properti.':');
+
+        $this->assertNotFalse($mulai, "Properti {$properti} tidak ditemukan pada halaman.");
+
+        return substr($isi, $mulai, 600);
+    }
+
     public function test_detail_penyaluran_terbuka_untuk_semua_role(): void
     {
         $penyaluran = Penyaluran::factory()->create(['user_id' => $this->admin()->id]);
