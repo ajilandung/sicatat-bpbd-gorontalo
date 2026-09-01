@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FotoPenyaluranController;
 use App\Http\Controllers\InstansiController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\Pengguna\PenggunaController;
@@ -49,7 +50,15 @@ Route::middleware(['auth', 'aktif'])->group(function () {
         Route::prefix('penyaluran')->name('penyaluran.')->group(function () {
             Route::get('/', [PenyaluranController::class, 'index'])->name('index');
 
+            // Dokumentasi foto kegiatan. Foto disimpan di luar folder publik,
+            // jadi berkasnya hanya dapat dibuka lewat route ini — terbuka untuk
+            // seluruh role yang login, sama seperti halaman detailnya.
+            Route::get('foto/{foto}', [FotoPenyaluranController::class, 'tampil'])->name('foto.tampil');
+
             Route::middleware('role:admin')->group(function () {
+                Route::post('{penyaluran}/foto', [FotoPenyaluranController::class, 'store'])->name('foto.store');
+                Route::delete('foto/{foto}', [FotoPenyaluranController::class, 'destroy'])->name('foto.destroy');
+
                 Route::get('terhapus', [PenyaluranController::class, 'terhapus'])->name('terhapus');
                 Route::get('create', [PenyaluranController::class, 'create'])->name('create');
                 Route::post('/', [PenyaluranController::class, 'store'])->name('store');

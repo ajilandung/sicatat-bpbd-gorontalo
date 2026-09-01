@@ -98,7 +98,7 @@ class PenyaluranController extends Controller
         // tetapi tidak boleh muncul bagi role lain.
         abort_if($penyaluran->trashed() && ! $request->user()->isAdmin(), 404);
 
-        $penyaluran->load(['desas.kecamatan.kabupaten', 'instansis', 'user']);
+        $penyaluran->load(['desas.kecamatan.kabupaten', 'instansis', 'user', 'fotos']);
 
         // Riwayat perubahan hanya untuk admin: yang membacanya adalah pihak
         // yang juga berwenang mengoreksi datanya.

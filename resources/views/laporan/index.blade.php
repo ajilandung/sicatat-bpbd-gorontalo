@@ -156,6 +156,30 @@
                 </div>
             </div>
 
+            {{-- Lampiran foto. Foto tidak dipilih sendiri di sini: yang ikut
+                 tercetak adalah foto milik kegiatan yang sudah tersaring,
+                 dikelompokkan menurut tanggal kegiatannya. --}}
+            @php $jumlahFoto = $rekap->jumlahFoto(); @endphp
+
+            <label class="mt-5 flex items-start gap-3 rounded-lg bg-slate-50 px-4 py-3 text-sm
+                          {{ $jumlahFoto > 0 ? 'cursor-pointer' : 'opacity-60' }}">
+                <input type="checkbox" name="lampiran" value="1" class="mt-0.5 size-4 rounded border-slate-300 text-air-700 focus:ring-air-500"
+                       @checked($jumlahFoto > 0) @disabled($jumlahFoto === 0)>
+
+                <span>
+                    <span class="font-medium text-navy-900">Sertakan lampiran dokumentasi foto</span>
+                    <span class="mt-0.5 block text-xs leading-relaxed text-slate-500">
+                        @if ($jumlahFoto > 0)
+                            {{ $jumlahFoto }} foto dari kegiatan pada periode ini akan dicetak di halaman terpisah,
+                            dikelompokkan menurut tanggal kegiatannya.
+                        @else
+                            Belum ada foto dokumentasi pada kegiatan yang tersaring. Foto ditambahkan dari halaman
+                            detail masing-masing kegiatan.
+                        @endif
+                    </span>
+                </span>
+            </label>
+
             <x-slot:kaki>
                 <p class="mr-auto text-xs leading-relaxed text-slate-500">
                     Laporan terbuka di tab baru. Untuk menyimpannya sebagai PDF, pilih

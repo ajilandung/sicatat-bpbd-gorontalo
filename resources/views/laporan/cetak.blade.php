@@ -139,10 +139,55 @@
         }
         .alat button { background: #fff; color: #0f2540; border-color: #fff; }
 
+        /* ── Lampiran dokumentasi ──
+           Foto diambil dari kegiatan yang sama dengan tabel di atas, lalu
+           dikelompokkan menurut tanggal kegiatannya. Dua foto sejajar per baris
+           agar muat pada kertas A4 tanpa mengecil sampai sulit dilihat. */
+        .lampiran { page-break-before: always; }
+
+        .dok-tanggal {
+            margin-top: 0.5cm;
+            border-bottom: 1px solid #000;
+            padding-bottom: 2px;
+            font-weight: bold;
+            page-break-after: avoid;
+        }
+
+        .dok-kegiatan { margin-top: 0.3cm; }
+        .dok-lokasi { font-weight: bold; font-size: 10pt; page-break-after: avoid; }
+        .dok-desa { font-size: 9.5pt; color: #333; page-break-after: avoid; }
+
+        .dok-foto {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3cm;
+            margin-top: 0.25cm;
+        }
+
+        /* Tiap foto utuh dalam satu halaman: gambar yang terpotong garis
+           pemenggalan kertas membuat lampiran tidak dapat dipakai. */
+        .dok-foto figure {
+            width: calc(50% - 0.15cm);
+            margin: 0;
+            page-break-inside: avoid;
+        }
+
+        .dok-foto img {
+            display: block;
+            width: 100%;
+            height: 5.6cm;
+            object-fit: cover;
+            border: 1px solid #64748b;
+        }
+
         @media print {
             body { background: #fff; }
             .kertas { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
             .alat { display: none; }
+
+            /* Foto harus ikut tercetak walaupun peramban sedang menghemat
+               tinta; tanpa ini sebagian peramban mengosongkan gambar. */
+            .dok-foto img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
 </head>
@@ -347,6 +392,62 @@
     </div>
 
 </div>
+
+{{-- ── Lampiran dokumentasi ──
+     Foto tidak dicari berdasarkan tanggal, melainkan diambil dari kegiatan
+     yang sudah tersaring pada laporan ini, lalu dikelompokkan menurut tanggal
+     kegiatannya. Dengan begitu foto susulan yang diunggah beberapa hari setelah
+     kegiatan tetap muncul di bawah tanggal kejadiannya. --}}
+@php
+    $hariBerfoto = $perTanggal
+        ->map(fn (array $hari) => [
+            'tanggal' => $hari['tanggal'],
+            'kegiatan' => $hari['kelompok']
+                ->flatMap(fn (array $kelompok) => $kelompok['kegiatan'])
+                ->filter(fn ($penyaluran) => $penyaluran->fotos->isNotEmpty())
+                ->values(),
+        ])
+        ->filter(fn (array $hari) => $hari['kegiatan']->isNotEmpty())
+        ->values();
+@endphp
+
+@if ($lampiran && $hariBerfoto->isNotEmpty())
+    <div class="kertas lampiran">
+        <p class="judul">Lampiran Dokumentasi Kegiatan Penyaluran Air Bersih</p>
+
+        @foreach ($hariBerfoto as $hari)
+            <p class="dok-tanggal">{{ $hari['tanggal']->translatedFormat('j F Y') }}</p>
+
+            @foreach ($hari['kegiatan'] as $penyaluran)
+                <div class="dok-kegiatan">
+                    <p class="dok-lokasi">
+                        {{ $penyaluran->kabupatenTersentuh()->implode(' / ') ?: '—' }}
+                        @php
+                            $kecamatan = $penyaluran->wilayahPerKecamatan()
+                                ->pluck('kecamatan')
+                                ->map(fn (string $nama) => 'Kec. '.$nama)
+                                ->implode(', ');
+                        @endphp
+                        @if ($kecamatan !== '')
+                            &rarr; {{ $kecamatan }}
+                        @endif
+                    </p>
+
+                    <p class="dok-desa">{{ $penyaluran->desas->map->namaLengkap()->implode(', ') }}</p>
+
+                    <div class="dok-foto">
+                        @foreach ($penyaluran->fotos as $foto)
+                            <figure>
+                                <img src="{{ $foto->url() }}"
+                                     alt="Dokumentasi kegiatan {{ $hari['tanggal']->translatedFormat('j F Y') }}">
+                            </figure>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        @endforeach
+    </div>
+@endif
 
 </body>
 </html>

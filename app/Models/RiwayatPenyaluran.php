@@ -29,6 +29,10 @@ class RiwayatPenyaluran extends Model
 
     public const AKSI_DIPULIHKAN = 'dipulihkan';
 
+    public const AKSI_FOTO_DITAMBAH = 'foto_ditambah';
+
+    public const AKSI_FOTO_DIHAPUS = 'foto_dihapus';
+
     public const UPDATED_AT = null;
 
     protected $table = 'riwayat_penyalurans';
@@ -45,6 +49,8 @@ class RiwayatPenyaluran extends Model
             self::AKSI_DIUBAH => ['label' => 'Diubah', 'warna' => 'kuning'],
             self::AKSI_DIHAPUS => ['label' => 'Dihapus', 'warna' => 'merah'],
             self::AKSI_DIPULIHKAN => ['label' => 'Dipulihkan', 'warna' => 'hijau'],
+            self::AKSI_FOTO_DITAMBAH => ['label' => 'Foto ditambahkan', 'warna' => 'biru'],
+            self::AKSI_FOTO_DIHAPUS => ['label' => 'Foto dihapus', 'warna' => 'merah'],
         ];
     }
 
@@ -65,6 +71,7 @@ class RiwayatPenyaluran extends Model
             'keterangan' => 'Keterangan',
             'desa' => 'Desa penerima',
             'instansi' => 'Instansi pelaksana',
+            'foto' => 'Foto dokumentasi',
         ];
     }
 
@@ -179,6 +186,7 @@ class RiwayatPenyaluran extends Model
             'volume_liter' => number_format((float) $nilai, 0, ',', '.').' liter',
             'jumlah_kk' => number_format((float) $nilai, 0, ',', '.').' KK',
             'jumlah_jiwa' => number_format((float) $nilai, 0, ',', '.').' jiwa',
+            'foto' => number_format((float) $nilai, 0, ',', '.').' foto',
             default => (string) $nilai,
         };
     }

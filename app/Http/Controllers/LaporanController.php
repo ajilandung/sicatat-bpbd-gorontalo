@@ -67,6 +67,8 @@ class LaporanController extends Controller
             'rekap' => $rekap,
             'perTanggal' => $rekap->perTanggal(),
             'identitas' => $this->simpanIdentitas($request),
+            // Lampiran foto dapat dimatikan bila laporan hanya perlu angkanya.
+            'lampiran' => $request->boolean('lampiran'),
         ]);
     }
 

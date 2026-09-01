@@ -76,6 +76,17 @@ class Penyaluran extends Model
     }
 
     /**
+     * Foto dokumentasi kegiatan ini, terlama lebih dulu.
+     *
+     * Foto tidak punya tanggal sendiri: tanggalnya adalah
+     * `tanggal_penyaluran` milik kegiatan ini.
+     */
+    public function fotos(): HasMany
+    {
+        return $this->hasMany(FotoPenyaluran::class)->orderBy('id');
+    }
+
+    /**
      * Apakah angka pada kegiatan ini merupakan angka gabungan beberapa desa.
      */
     public function angkaGabungan(): bool

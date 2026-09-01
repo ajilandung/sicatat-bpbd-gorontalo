@@ -73,6 +73,18 @@ class RekapPenyaluran
     }
 
     /**
+     * Jumlah foto dokumentasi pada kegiatan yang tersaring. Dipakai halaman
+     * laporan untuk memberi tahu ada berapa foto yang akan ikut tercetak
+     * sebagai lampiran.
+     */
+    public function jumlahFoto(): int
+    {
+        return DB::table('foto_penyalurans')
+            ->whereIn('penyaluran_id', $this->dasar()->select('penyalurans.id'))
+            ->count();
+    }
+
+    /**
      * Jumlah kecamatan yang wilayahnya pernah menerima bantuan.
      *
      * Tabel penyaluran hanya menyimpan id desa (§7), jadi kecamatannya
@@ -299,7 +311,11 @@ class RekapPenyaluran
     public function perTanggal(): Collection
     {
         return $this->dasar()
-            ->with(['desas.kecamatan.kabupaten', 'instansis'])
+            // `fotos` ikut dimuat supaya lampiran dokumentasi pada laporan
+            // cetak memakai kegiatan yang sama persis dengan tabel di atasnya —
+            // foto tidak dicari ulang berdasarkan tanggal, melainkan diambil
+            // dari kegiatan yang sudah tersaring.
+            ->with(['desas.kecamatan.kabupaten', 'instansis', 'fotos'])
             ->orderBy('tanggal_penyaluran')
             ->orderBy('id')
             ->get()

@@ -125,6 +125,76 @@
             @endif
         </x-ui.kartu>
 
+        {{-- Dokumentasi kegiatan. Foto menempel pada kegiatan ini, bukan pada
+             tanggalnya: tanggal dokumentasi selalu dibaca dari tanggal kegiatan
+             di atas, sehingga admin tidak perlu mengisi tanggal lagi per foto
+             dan foto ikut berpindah dengan sendirinya bila tanggal kegiatan
+             dikoreksi belakangan. --}}
+        <x-ui.kartu
+            judul="Dokumentasi Kegiatan"
+            :deskripsi="'Foto kegiatan tanggal '.$penyaluran->tanggal_penyaluran?->translatedFormat('d F Y').'. Foto boleh ditambahkan kapan saja setelah kegiatan tercatat, dan ikut tercetak pada lampiran laporan periode yang memuat tanggal ini.'">
+
+            @if (auth()->user()->isAdmin() && ! $penyaluran->trashed())
+                <x-slot:aksi>
+                    <form method="POST" action="{{ route('penyaluran.foto.store', $penyaluran) }}"
+                          enctype="multipart/form-data">
+                        @csrf
+
+                        {{-- Berkas langsung terkirim begitu dipilih: tidak ada
+                             isian lain yang perlu diisi admin untuk sebuah foto. --}}
+                        <label class="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg
+                                      bg-air-700 px-3 text-sm font-semibold whitespace-nowrap text-white shadow-kartu
+                                      transition-colors hover:bg-air-800
+                                      focus-within:ring-2 focus-within:ring-air-500 focus-within:ring-offset-2">
+                            <x-ikon nama="plus" class="size-4"/>
+                            Tambah Foto
+
+                            <input type="file" name="foto[]" multiple class="sr-only"
+                                   accept="image/jpeg,image/png,image/webp"
+                                   onchange="if (this.files.length) this.form.submit()">
+                        </label>
+                    </form>
+                </x-slot:aksi>
+            @endif
+
+            <x-ui.ringkasan-galat class="mb-5"/>
+
+            @if ($penyaluran->fotos->isEmpty())
+                <x-ui.kosong ikon="kamera" judul="Belum ada foto dokumentasi"
+                             deskripsi="Foto lapangan untuk kegiatan ini belum diunggah. Satu kegiatan dapat memuat beberapa foto sekaligus."/>
+            @else
+                <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    @foreach ($penyaluran->fotos as $foto)
+                        <li class="group relative">
+                            <a href="{{ $foto->url() }}" target="_blank" rel="noopener"
+                               class="block overflow-hidden rounded-lg border border-slate-200
+                                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500
+                                      focus-visible:ring-offset-2">
+                                <img src="{{ $foto->url() }}" loading="lazy"
+                                     alt="Dokumentasi kegiatan {{ $penyaluran->tanggal_penyaluran?->translatedFormat('d F Y') }}, foto {{ $loop->iteration }}"
+                                     class="aspect-[4/3] w-full bg-slate-100 object-cover">
+                            </a>
+
+                            @if (auth()->user()->isAdmin() && ! $penyaluran->trashed())
+                                <div class="absolute right-1.5 top-1.5">
+                                    <x-ui.konfirmasi
+                                        :aksi="route('penyaluran.foto.destroy', $foto)"
+                                        metode="DELETE"
+                                        ikon="sampah"
+                                        label="Hapus foto ini"
+                                        varian="bahaya"
+                                        judul="Hapus foto dokumentasi ini?"
+                                        pesan="Foto dihapus permanen dan tidak lagi muncul pada lampiran laporan. Data kegiatan penyalurannya sendiri tidak ikut terhapus."
+                                        label-konfirmasi="Ya, hapus foto"
+                                        varian-konfirmasi="bahaya"/>
+                                </div>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </x-ui.kartu>
+
         {{-- Riwayat perubahan (§9.3) — khusus admin, karena yang membacanya
              adalah pihak yang juga berwenang mengoreksi datanya. --}}
         @if (auth()->user()->isAdmin())
