@@ -11,7 +11,7 @@
             kembali-label="Kembali ke daftar pengguna"/>
 
         <x-ui.kartu padat>
-            <div class="flex flex-wrap items-center gap-4 border-b border-slate-100 px-5 py-5 sm:px-6">
+            <div class="flex flex-wrap items-center gap-4 border-b border-tepi/70 px-5 py-5 sm:px-6">
                 <x-ui.avatar :nama="$pengguna->name" ukuran="lg"
                              :warna="$pengguna->isAdmin() ? 'navy' : 'netral'"/>
 
@@ -31,7 +31,7 @@
                 </div>
             </div>
 
-            <dl class="divide-y divide-slate-100 text-sm">
+            <dl class="divide-y divide-tepi/70 text-sm">
                 @foreach ([
                     'Username' => $pengguna->username,
                     'Email' => $pengguna->email,
@@ -47,7 +47,7 @@
                 @endforeach
             </dl>
 
-            <div class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/60 px-5 py-4 sm:px-6">
+            <div class="flex flex-wrap items-center justify-end gap-3 border-t border-tepi/70 bg-permukaan px-5 py-4 sm:px-6">
                 @can('resetPassword', $pengguna)
                     <x-ui.tombol varian="sekunder" :href="route('pengguna.reset-password', $pengguna)">
                         <x-ikon nama="kunci" class="size-4"/>

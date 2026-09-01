@@ -157,7 +157,7 @@
                         mencakup beberapa desa dari kecamatan yang berbeda — pilihan sebelumnya tidak akan hilang.
                     </p>
 
-                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                    <div class="rounded-xl border border-tepi bg-permukaan p-4">
                         <div class="grid gap-3 sm:grid-cols-2">
                             <div>
                                 <label for="pemilih_kabupaten" class="mb-1.5 block text-xs font-medium text-slate-500">
@@ -195,10 +195,10 @@
 
                         {{-- Daftar centang desa pada kecamatan yang sedang dibuka. --}}
                         <div class="mt-3" x-show="kecamatanId" x-cloak>
-                            <div class="max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1">
+                            <div class="max-h-56 overflow-y-auto rounded-lg border border-tepi bg-white p-1">
                                 <template x-for="desa in desas" :key="desa.id">
                                     <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm
-                                                  text-navy-900 transition-colors hover:bg-slate-50">
+                                                  text-navy-900 transition-colors hover:bg-permukaan">
                                         <input type="checkbox" :value="desa.id" :checked="sudahDipilih(desa.id)"
                                                @change="ubahPilihan(desa)"
                                                class="size-4 rounded border-slate-300 text-air-700 focus:ring-air-500">

@@ -11,7 +11,7 @@
         kembali-label="Kembali ke riwayat penyaluran"/>
 
     <form method="GET" action="{{ route('penyaluran.terhapus') }}"
-          class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
+          class="panel p-4">
         <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             <div>
                 <label for="cari" class="sr-only">Cari data terhapus</label>
@@ -33,11 +33,11 @@
         </div>
     </form>
 
-    <div class="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-kartu">
+    <div class="mt-4 overflow-hidden panel">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table class="min-w-full divide-y divide-tepi text-sm">
                 <thead>
-                    <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <tr class="bg-permukaan text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                         <th scope="col" class="px-5 py-3">Tanggal Kegiatan</th>
                         <th scope="col" class="px-5 py-3">Wilayah Penerima</th>
                         <th scope="col" class="px-5 py-3 text-right">Volume</th>
@@ -46,9 +46,9 @@
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-tepi/70">
                     @forelse ($daftarPenyaluran as $penyaluran)
-                        <tr class="transition-colors hover:bg-slate-50/70">
+                        <tr class="transition-colors hover:bg-permukaan">
                             <td class="whitespace-nowrap px-5 py-3.5 font-medium text-navy-900">
                                 {{ $penyaluran->tanggal_penyaluran?->translatedFormat('d M Y') }}
                             </td>
@@ -99,7 +99,7 @@
         </div>
 
         @if ($daftarPenyaluran->hasPages())
-            <div class="border-t border-slate-200 px-5 py-3">
+            <div class="border-t border-tepi px-5 py-3">
                 {{ $daftarPenyaluran->links() }}
             </div>
         @endif

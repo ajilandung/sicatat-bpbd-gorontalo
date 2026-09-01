@@ -17,14 +17,27 @@
 |   navy        profesionalitas dan keterbacaan: sidebar, panel identitas,
 |               judul, serta tint pembeda yang perlu dibedakan dari `air`
 |               (misalnya lencana dan avatar peran Admin).
-|   slate       teks penunjang, garis, dan permukaan netral di dalam kartu.
-|   latar       satu warna abu-abu sejuk untuk latar halaman (#e9eef5). Bukan
-|               `slate-100`: selisihnya dengan putih terlalu tipis (1,10:1)
-|               sehingga kartu putih terlihat menyatu dengan halaman. Warna ini
-|               memberi 1,17:1 — masih sangat muda, tetapi tepi kartu terbaca
-|               tanpa perlu bayangan yang berat atau garis yang tebal. Nuansa
+|   slate       teks penunjang dan permukaan netral di dalam kartu.
+|
+| Tiga token permukaan mengatur hierarki halaman, dan hanya bertiga inilah yang
+| boleh menentukan "apa yang berdiri di atas apa":
+|
+|   latar       #e3e9f2 — latar halaman, lapis paling bawah. Bukan `slate-100`
+|               maupun putih: selisih keduanya dengan kartu terlalu tipis
+|               (1,10:1) sehingga kartu terlihat menyatu dengan halaman. Warna
+|               ini memberi 1,26:1 — masih tergolong abu-abu sangat muda,
+|               tetapi tepi kartu terbaca tanpa perlu bayangan berat. Nuansa
 |               birunya diambil dari keluarga navy supaya tetap satu keluarga
 |               dengan warna identitas, bukan abu-abu netral yang dingin.
+|   permukaan   #f2f6fb — section di dalam kartu: header tabel, kotak ringkasan,
+|               baris riwayat, kaki kartu. Berada di antara latar dan putih,
+|               sehingga urutannya terbaca: halaman → section → kartu.
+|   tepi        #d7e0ec — garis tepi kartu, panel, dan tabel. Sedikit lebih
+|               terbaca daripada `slate-200` dan sewarna dengan keluarga navy.
+|
+| Elemen form sengaja memakai garis yang lebih gelap (`slate-300`) daripada
+| tepi kartu, supaya kolom isian tidak pernah terlihat menyatu dengan kartu
+| tempatnya berdiri.
 |
 | Oranye pernah menjadi warna aksen di sini dan sudah dihapus seluruhnya atas
 | permintaan pemilik proyek. Jangan menghidupkannya kembali sebagai warna
@@ -59,8 +72,10 @@
     --color-air-800: #075985;
     --color-air-900: #0c4a6e;
 
-    /* Latar halaman — abu-abu sejuk, satu-satunya warna di bawah kartu */
-    --color-latar: #e9eef5;
+    /* Tiga permukaan yang menyusun hierarki halaman */
+    --color-latar: #e3e9f2;
+    --color-permukaan: #f2f6fb;
+    --color-tepi: #d7e0ec;
 
     /* Bayangan bernuansa navy — kedalaman tipis tanpa gradient */
     --shadow-kartu: 0 1px 2px rgb(20 38 57 / 0.06), 0 2px 6px -1px rgb(20 38 57 / 0.10);
@@ -79,6 +94,28 @@
     --color-navy-800: #1d3450;
     --color-navy-900: #142639;
     --color-navy-950: #0b1826;
+}
+
+/*
+| ─────────────────────────────────────────────────────────────────────────────
+| Panel — satu bentuk permukaan untuk seluruh aplikasi
+| ─────────────────────────────────────────────────────────────────────────────
+|
+| Kartu, panel filter, pembungkus tabel, dan kotak konten lain memakai kelas
+| yang sama ini, bukan menuliskan sendiri `rounded-xl border border-… bg-white
+| shadow-…` di tiap halaman. Sebelumnya rangkaian kelas itu diulang di delapan
+| halaman daftar, sehingga mengubah satu token warna tidak pernah benar-benar
+| mengubah seluruh sistem — halaman yang menulisnya sendiri tertinggal.
+|
+| Ditulis sebagai `@utility` agar tetap bisa digabung dengan utilitas lain pada
+| elemen yang sama (mis. `panel overflow-hidden p-4`), dan agar penyetelan
+| warnanya cukup dilakukan di blok `@theme` di atas.
+*/
+@utility panel {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-tepi);
+    background-color: #fff;
+    box-shadow: var(--shadow-kartu);
 }
 
 /* Elemen Alpine yang belum diinisialisasi jangan sempat terlihat. */

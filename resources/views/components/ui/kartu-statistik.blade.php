@@ -8,7 +8,7 @@
     };
 @endphp
 
-<div {{ $attributes->merge(['class' => 'flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-kartu sm:p-5']) }}>
+<div {{ $attributes->merge(['class' => 'flex flex-col panel p-4 sm:p-5']) }}>
     <div class="flex items-start justify-between gap-4">
         <p class="text-sm font-medium text-slate-500">{{ $label }}</p>
 

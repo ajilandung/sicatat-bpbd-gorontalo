@@ -171,7 +171,7 @@
                     </x-ui.tombol>
                 </form>
 
-                <div class="mt-8 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5">
+                <div class="mt-8 rounded-xl border border-tepi bg-permukaan px-4 py-3.5">
                     <p class="flex items-start gap-2.5 text-xs leading-relaxed text-slate-600">
                         <x-ikon nama="info" class="mt-px size-4 shrink-0 text-slate-400"/>
                         <span>Lupa password? Hubungi administrator sistem. Sistem ini tidak membuka pendaftaran akun mandiri.</span>

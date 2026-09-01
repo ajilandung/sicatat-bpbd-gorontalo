@@ -83,7 +83,7 @@
                 deskripsi="Lima desa/kelurahan dengan kegiatan penyaluran terbanyak."
                 padat>
         @forelse ($wilayahTersering as $desa)
-            <div class="flex items-center gap-4 border-b border-slate-100 px-5 py-3.5 last:border-0 sm:px-6">
+            <div class="flex items-center gap-4 border-b border-tepi/70 px-5 py-3.5 last:border-0 sm:px-6">
                 <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-air-50
                              text-sm font-semibold text-air-800">
                     {{ $loop->iteration }}
@@ -115,8 +115,8 @@
 
         @forelse ($penyaluranTerbaru as $penyaluran)
             <a href="{{ route('penyaluran.show', $penyaluran) }}"
-               class="flex items-start gap-4 border-b border-slate-100 px-5 py-3.5 transition-colors
-                      last:border-0 hover:bg-slate-50/70 focus-visible:outline-none focus-visible:bg-slate-50 sm:px-6">
+               class="flex items-start gap-4 border-b border-tepi/70 px-5 py-3.5 transition-colors
+                      last:border-0 hover:bg-permukaan focus-visible:outline-none focus-visible:bg-permukaan sm:px-6">
                 <div class="min-w-0 flex-1">
                     <p class="truncate font-medium text-navy-900">
                         {{ $penyaluran->desas->map->namaLengkap()->implode(', ') ?: 'Tanpa desa' }}

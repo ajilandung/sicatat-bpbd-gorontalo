@@ -14,7 +14,7 @@
 
     {{-- ── Pencarian dan filter ── --}}
     <form method="GET" action="{{ route('wilayah.kabupaten.index') }}"
-          class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
+          class="panel p-4">
         <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_auto]">
             <div>
                 <label for="cari" class="sr-only">Cari kabupaten atau kota</label>
@@ -48,11 +48,11 @@
     </p>
 
     {{-- ── Tabel: layar sedang ke atas ── --}}
-    <div class="mt-3 hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-kartu md:block">
+    <div class="mt-3 hidden overflow-hidden panel md:block">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table class="min-w-full divide-y divide-tepi text-sm">
                 <thead>
-                    <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <tr class="bg-permukaan text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                         <th scope="col" class="px-5 py-3">Wilayah</th>
                         <th scope="col" class="px-5 py-3">Kode</th>
                         <th scope="col" class="px-5 py-3 text-right">Kecamatan</th>
@@ -60,9 +60,9 @@
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-tepi/70">
                     @forelse ($daftarKabupaten as $kabupaten)
-                        <tr class="transition-colors hover:bg-slate-50/70">
+                        <tr class="transition-colors hover:bg-permukaan">
                             <td class="px-5 py-3.5">
                                 <p class="font-medium text-navy-900">{{ $kabupaten->namaLengkap() }}</p>
                             </td>
@@ -102,7 +102,7 @@
         </div>
 
         @if ($daftarKabupaten->hasPages())
-            <div class="border-t border-slate-200 px-5 py-3">
+            <div class="border-t border-tepi px-5 py-3">
                 {{ $daftarKabupaten->links() }}
             </div>
         @endif
@@ -111,30 +111,30 @@
     {{-- ── Daftar kartu: layar kecil ── --}}
     <div class="mt-3 space-y-3 md:hidden">
         @forelse ($daftarKabupaten as $kabupaten)
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
+            <div class="panel p-4">
                 <p class="font-medium text-navy-900">{{ $kabupaten->namaLengkap() }}</p>
                 <p class="mt-0.5 font-mono text-xs text-slate-500">{{ $kabupaten->kode ?? 'tanpa kode' }}</p>
 
-                <div class="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                <div class="mt-3 flex flex-wrap gap-2 border-t border-tepi/70 pt-3 text-xs text-slate-600">
                     <a href="{{ route('wilayah.kecamatan.index', ['kabupaten_id' => $kabupaten->id]) }}"
-                       class="rounded-lg bg-slate-50 px-2.5 py-1 font-medium text-air-700">
+                       class="rounded-lg bg-permukaan px-2.5 py-1 font-medium text-air-700">
                         {{ $kabupaten->kecamatans_count }} kecamatan
                     </a>
                     <a href="{{ route('wilayah.desa.index', ['kabupaten_id' => $kabupaten->id]) }}"
-                       class="rounded-lg bg-slate-50 px-2.5 py-1 font-medium text-air-700">
+                       class="rounded-lg bg-permukaan px-2.5 py-1 font-medium text-air-700">
                         {{ $kabupaten->desas_count }} desa/kelurahan
                     </a>
                 </div>
             </div>
         @empty
-            <div class="rounded-xl border border-slate-200 bg-white shadow-kartu">
+            <div class="panel">
                 <x-ui.kosong judul="Wilayah tidak ditemukan"
                              deskripsi="Ubah kata kunci pencarian atau filter yang dipakai."/>
             </div>
         @endforelse
 
         @if ($daftarKabupaten->hasPages())
-            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-kartu">
+            <div class="panel px-4 py-3">
                 {{ $daftarKabupaten->links() }}
             </div>
         @endif

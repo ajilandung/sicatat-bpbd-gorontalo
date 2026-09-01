@@ -19,7 +19,7 @@
 
     {{-- ── Filter laporan: sama persis dengan Riwayat Penyaluran (FR-16, FR-17, FR-18) ── --}}
     <form method="GET" action="{{ route('laporan.index') }}"
-          class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu sm:p-5">
+          class="panel p-4 sm:p-5">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div class="sm:col-span-2 lg:col-span-1">
                 <label for="cari" class="mb-1.5 block text-xs font-medium text-slate-500">Cari</label>
@@ -161,7 +161,7 @@
                  dikelompokkan menurut tanggal kegiatannya. --}}
             @php $jumlahFoto = $rekap->jumlahFoto(); @endphp
 
-            <label class="mt-5 flex items-start gap-3 rounded-lg bg-slate-50 px-4 py-3 text-sm
+            <label class="mt-5 flex items-start gap-3 rounded-lg bg-permukaan px-4 py-3 text-sm
                           {{ $jumlahFoto > 0 ? 'cursor-pointer' : 'opacity-60' }}">
                 <input type="checkbox" name="lampiran" value="1" class="mt-0.5 size-4 rounded border-slate-300 text-air-700 focus:ring-air-500"
                        @checked($jumlahFoto > 0) @disabled($jumlahFoto === 0)>
@@ -199,7 +199,7 @@
                 judul="Rincian penyaluran per tanggal"
                 deskripsi="Susunan yang sama dengan bagian “Upaya yang Dilakukan” pada laporan cetak.">
         @forelse ($perTanggal as $hari)
-            <div class="border-b border-slate-100 px-5 py-5 last:border-b-0 sm:px-6">
+            <div class="border-b border-tepi/70 px-5 py-5 last:border-b-0 sm:px-6">
                 <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <h3 class="text-sm font-semibold uppercase tracking-wide text-navy-900">
                         {{ $hari['tanggal']->translatedFormat('l, j F Y') }}
@@ -220,7 +220,7 @@
 
                     <ul class="mt-1.5 space-y-2">
                         @foreach ($kelompok['kegiatan'] as $penyaluran)
-                            <li class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 rounded-lg bg-slate-50/70 px-3 py-2">
+                            <li class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 rounded-lg bg-permukaan px-3 py-2">
                                 <div class="min-w-0">
                                     @foreach ($penyaluran->wilayahPerKecamatan() as $wilayah)
                                         <p class="text-sm text-navy-900">

@@ -487,7 +487,22 @@ itu, dan seluruh aplikasi ikut berubah.
 |---|---|---|---|
 | `air` | `50`–`900`, inti `#0ea5e9` | Biru — warna primer sekaligus aksen | Logo, tombol utama, tautan, penanda menu aktif, cincin fokus, garis aksen, panel informasi |
 | `navy` | `50`–`950`, inti `#142639` | Navy — profesionalitas | Sidebar, panel identitas halaman login, judul dan teks utama, tint pembeda peran Admin |
-| `slate` (bawaan) | — | Netral | Latar halaman, teks penunjang, garis pembatas; putih untuk permukaan kartu |
+| `slate` (bawaan) | — | Netral | Teks penunjang dan garis pada elemen form |
+| `latar` | `#e3e9f2` | Permukaan paling bawah | Latar seluruh halaman (`<body>`) |
+| `permukaan` | `#f2f6fb` | Permukaan tengah | Section di dalam kartu: header tabel, kaki kartu, kotak ringkasan, baris riwayat |
+| `tepi` | `#d7e0ec` | Garis tepi permukaan | Border kartu, panel, tabel, dan pembatas di dalamnya |
+
+**Hierarki tiga permukaan.** Latar halaman (`#e3e9f2`) → section (`#f2f6fb`) → kartu (putih), dengan
+kontras 1,26 : 1 antara halaman dan kartu. Angka itu dipilih setelah nilai sebelumnya (`#e9eef5`,
+1,17 : 1) terbukti terlalu tipis sehingga kartu terlihat menyatu dengan halaman. Elemen form sengaja
+memakai garis yang lebih gelap (`slate-300`) daripada tepi kartu, supaya kolom isian tidak pernah
+terlihat menyatu dengan kartu tempatnya berdiri.
+
+**Satu kelas untuk semua permukaan.** Kartu, panel filter, dan pembungkus tabel memakai kelas
+`panel` — sebuah `@utility` di `app.css` yang menggabungkan sudut, garis tepi, latar putih, dan
+bayangan halus. Sebelumnya rangkaian kelas itu ditulis ulang di delapan halaman daftar, sehingga
+mengubah satu token warna tidak pernah benar-benar mengubah seluruh sistem: halaman yang menuliskan
+kelasnya sendiri selalu tertinggal.
 
 Warna status memakai palet bawaan Tailwind — `emerald` (berhasil), `amber` (peringatan),
 `red` (galat) — supaya maknanya langsung terbaca tanpa menambah jumlah warna identitas.

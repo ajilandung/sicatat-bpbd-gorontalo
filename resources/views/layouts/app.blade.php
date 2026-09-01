@@ -155,7 +155,7 @@
 
     {{-- ── Konten ── --}}
     <div class="lg:pl-64">
-        <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-tepi bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
             <button type="button" x-ref="tombolBukaSidebar"
                     @click="sidebarTerbuka = true; $nextTick(() => $refs.tombolTutupSidebar.focus())"
                     class="-ml-1 rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-navy-900
@@ -186,20 +186,20 @@
                 </button>
 
                 <div x-show="buka" x-transition x-cloak
-                     class="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-naik">
-                    <div class="border-b border-slate-100 px-4 py-3">
+                     class="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-tepi bg-white shadow-naik">
+                    <div class="border-b border-tepi/70 px-4 py-3">
                         <p class="truncate text-sm font-medium text-navy-900">{{ $user->name }}</p>
                         <p class="truncate text-xs text-slate-500">{{ $user->username }}</p>
                         <x-ui.lencana-role :role="$user->role" class="mt-2"/>
                     </div>
 
                     <a href="{{ route('password.edit') }}"
-                       class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-navy-900">
+                       class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-permukaan hover:text-navy-900">
                         <x-ikon nama="kunci" class="size-4 text-slate-400"/>
                         Ubah Password
                     </a>
 
-                    <form method="POST" action="{{ route('logout') }}" class="border-t border-slate-100">
+                    <form method="POST" action="{{ route('logout') }}" class="border-t border-tepi/70">
                         @csrf
                         <button type="submit"
                                 class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-700 transition-colors hover:bg-red-50">

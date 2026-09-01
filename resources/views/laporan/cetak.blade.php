@@ -22,7 +22,10 @@
 
         body {
             margin: 0;
-            background: #e2e8f0;
+            /* Sewarna latar halaman aplikasi (--color-latar) supaya pratinjau
+               kertas terasa satu sistem dengan layar lainnya. Saat dicetak,
+               latar ini diganti putih oleh aturan @media print di bawah. */
+            background: #e3e9f2;
             color: #000;
             font-family: Arial, Helvetica, sans-serif;
             font-size: 10.5pt;

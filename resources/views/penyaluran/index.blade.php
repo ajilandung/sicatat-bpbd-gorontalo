@@ -26,7 +26,7 @@
 
     {{-- ── Pencarian dan filter (FR-16, FR-17, FR-18) ── --}}
     <form method="GET" action="{{ route('penyaluran.index') }}"
-          class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu sm:p-5">
+          class="panel p-4 sm:p-5">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div class="sm:col-span-2 lg:col-span-1">
                 <label for="cari" class="mb-1.5 block text-xs font-medium text-slate-500">Cari</label>
@@ -85,11 +85,11 @@
     </p>
 
     {{-- ── Tabel: layar sedang ke atas ── --}}
-    <div class="mt-3 hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-kartu md:block">
+    <div class="mt-3 hidden overflow-hidden panel md:block">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table class="min-w-full divide-y divide-tepi text-sm">
                 <thead>
-                    <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <tr class="bg-permukaan text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                         <th scope="col" class="px-5 py-3">Tanggal</th>
                         <th scope="col" class="px-5 py-3">Wilayah Penerima</th>
                         <th scope="col" class="hidden px-5 py-3 lg:table-cell">Instansi Pelaksana</th>
@@ -99,9 +99,9 @@
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-tepi/70">
                     @forelse ($daftarPenyaluran as $penyaluran)
-                        <tr class="transition-colors hover:bg-slate-50/70">
+                        <tr class="transition-colors hover:bg-permukaan">
                             <td class="whitespace-nowrap px-5 py-3.5">
                                 <p class="font-medium text-navy-900">
                                     {{ $penyaluran->tanggal_penyaluran?->translatedFormat('d M Y') }}
@@ -189,7 +189,7 @@
         </div>
 
         @if ($daftarPenyaluran->hasPages())
-            <div class="border-t border-slate-200 px-5 py-3">
+            <div class="border-t border-tepi px-5 py-3">
                 {{ $daftarPenyaluran->links() }}
             </div>
         @endif
@@ -198,7 +198,7 @@
     {{-- ── Daftar kartu: layar kecil ── --}}
     <div class="mt-3 space-y-3 md:hidden">
         @forelse ($daftarPenyaluran as $penyaluran)
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
+            <div class="panel p-4">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="font-medium text-navy-900">
@@ -226,7 +226,7 @@
                     </x-ui.lencana>
                 @endif
 
-                <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-tepi/70 pt-3">
                     <x-ui.tombol varian="sekunder" ukuran="kecil" :href="route('penyaluran.show', $penyaluran)">
                         Lihat detail
                     </x-ui.tombol>
@@ -251,7 +251,7 @@
                 </div>
             </div>
         @empty
-            <div class="rounded-xl border border-slate-200 bg-white shadow-kartu">
+            <div class="panel">
                 <x-ui.kosong
                     judul="Belum ada data penyaluran"
                     :deskripsi="$adaFilter
@@ -261,7 +261,7 @@
         @endforelse
 
         @if ($daftarPenyaluran->hasPages())
-            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-kartu">
+            <div class="panel px-4 py-3">
                 {{ $daftarPenyaluran->links() }}
             </div>
         @endif

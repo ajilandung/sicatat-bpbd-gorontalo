@@ -33,7 +33,7 @@
 
     <x-ui.peta-gorontalo :rekap="$rekapKabupaten" class="mx-auto mt-6 max-w-4xl"/>
 
-    <dl class="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 border-t border-slate-100 pt-6
+    <dl class="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 border-t border-tepi/70 pt-6
                sm:grid-cols-3 lg:grid-cols-5">
         @foreach ($angkaWilayah as $angka)
             <div class="flex flex-col items-center text-center">

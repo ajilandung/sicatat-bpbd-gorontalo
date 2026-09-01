@@ -32,7 +32,7 @@
                     <x-ui.password nama="password_sekarang" autocomplete="current-password" required autofocus/>
                 </x-ui.kolom>
 
-                <div class="border-t border-slate-100 pt-5">
+                <div class="border-t border-tepi/70 pt-5">
                     <x-ui.kolom nama="password" label="Password baru" wajib
                                 petunjuk="Minimal 8 karakter dan berbeda dari password saat ini.">
                         <x-ui.password nama="password" autocomplete="new-password" required/>
@@ -43,7 +43,7 @@
                     <x-ui.password nama="password_confirmation" autocomplete="new-password" required/>
                 </x-ui.kolom>
 
-                <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+                <div class="flex flex-col-reverse gap-3 border-t border-tepi/70 pt-5 sm:flex-row sm:justify-end">
                     @unless ($wajibGanti)
                         <x-ui.tombol varian="sekunder" :href="route(auth()->user()->routeDashboard())">Batal</x-ui.tombol>
                     @endunless

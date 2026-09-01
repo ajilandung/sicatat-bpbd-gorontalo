@@ -3,7 +3,7 @@
 {{-- Navigasi antar halaman yang bersaudara, mis. tiga tingkat data wilayah.
      Dibuat sebagai <nav> dengan aria-current agar pembaca layar tahu halaman
      mana yang sedang dibuka. --}}
-<nav {{ $attributes->merge(['class' => 'mb-6 border-b border-slate-200']) }} aria-label="{{ $label }}">
+<nav {{ $attributes->merge(['class' => 'mb-6 border-b border-tepi']) }} aria-label="{{ $label }}">
     <ul class="-mb-px flex flex-wrap gap-x-6 gap-y-1">
         @foreach ($item as $tab)
             @php $aktif = request()->routeIs($tab['aktifJika']); @endphp

@@ -39,7 +39,7 @@
             @php $data = $rekap->get($wilayah['kode']); @endphp
 
             <li class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs
-                       {{ $data ? 'border-air-200 bg-air-50 text-air-900' : 'border-slate-200 bg-slate-50 text-slate-500' }}">
+                       {{ $data ? 'border-air-200 bg-air-50 text-air-900' : 'border-tepi bg-permukaan text-slate-500' }}">
                 <span class="size-2 shrink-0 rounded-full {{ $data ? 'bg-air-600' : 'bg-slate-300' }}"></span>
                 <span class="font-medium">{{ $sebutan($wilayah) }}</span>
                 <span>{{ $data ? $angka($data->jumlah_kegiatan).' kegiatan' : 'belum ada' }}</span>

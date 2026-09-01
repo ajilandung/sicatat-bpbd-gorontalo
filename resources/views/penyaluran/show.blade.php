@@ -18,7 +18,7 @@
         @endif
 
         <x-ui.kartu padat>
-            <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
+            <div class="border-b border-tepi/70 px-5 py-5 sm:px-6">
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div class="min-w-0">
                         <p class="flex items-center gap-2 text-sm text-slate-500">
@@ -58,7 +58,7 @@
                 @endif
             </div>
 
-            <dl class="divide-y divide-slate-100 text-sm">
+            <dl class="divide-y divide-tepi/70 text-sm">
                 <div class="grid gap-1 px-5 py-3.5 sm:grid-cols-3 sm:px-6">
                     <dt class="text-slate-500">Desa/kelurahan penerima</dt>
                     <dd class="sm:col-span-2">
@@ -171,7 +171,7 @@
                     @foreach ($penyaluran->fotos as $foto)
                         <li class="group relative">
                             <a href="{{ $foto->url() }}" target="_blank" rel="noopener"
-                               class="block overflow-hidden rounded-lg border border-slate-200
+                               class="block overflow-hidden rounded-lg border border-tepi
                                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500
                                       focus-visible:ring-offset-2">
                                 <img src="{{ $foto->url() }}" loading="lazy"
@@ -235,7 +235,7 @@
                             @if ($perubahan !== [])
                                 <ul class="mt-3 space-y-2">
                                     @foreach ($perubahan as $baris)
-                                        <li class="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                                        <li class="rounded-lg bg-permukaan px-3 py-2 text-sm">
                                             <p class="text-xs font-medium text-slate-500">{{ $baris['label'] }}</p>
                                             <p class="mt-0.5 text-navy-900">
                                                 <span class="text-slate-400 line-through">{{ $baris['dari'] }}</span>

@@ -21,7 +21,7 @@
 
     {{-- ── Pencarian dan filter ── --}}
     <form method="GET" action="{{ route('wilayah.desa.index') }}"
-          class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
+          class="panel p-4">
         <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13rem_13rem_10rem_auto]">
             <div>
                 <label for="cari" class="sr-only">Cari desa atau kelurahan</label>
@@ -65,11 +65,11 @@
     </p>
 
     {{-- ── Tabel: layar sedang ke atas ── --}}
-    <div class="mt-3 hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-kartu md:block">
+    <div class="mt-3 hidden overflow-hidden panel md:block">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table class="min-w-full divide-y divide-tepi text-sm">
                 <thead>
-                    <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <tr class="bg-permukaan text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                         <th scope="col" class="px-5 py-3">Desa/Kelurahan</th>
                         <th scope="col" class="px-5 py-3">Kecamatan</th>
                         <th scope="col" class="hidden px-5 py-3 lg:table-cell">Kabupaten/Kota</th>
@@ -78,9 +78,9 @@
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-tepi/70">
                     @forelse ($daftarDesa as $desa)
-                        <tr class="transition-colors hover:bg-slate-50/70">
+                        <tr class="transition-colors hover:bg-permukaan">
                             <td class="px-5 py-3.5">
                                 <p class="font-medium text-navy-900">{{ $desa->namaLengkap() }}</p>
                                 <p class="font-mono text-xs text-slate-400">{{ $desa->kode ?? 'tanpa kode' }}</p>
@@ -137,7 +137,7 @@
         </div>
 
         @if ($daftarDesa->hasPages())
-            <div class="border-t border-slate-200 px-5 py-3">
+            <div class="border-t border-tepi px-5 py-3">
                 {{ $daftarDesa->links() }}
             </div>
         @endif
@@ -146,7 +146,7 @@
     {{-- ── Daftar kartu: layar kecil ── --}}
     <div class="mt-3 space-y-3 md:hidden">
         @forelse ($daftarDesa as $desa)
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
+            <div class="panel p-4">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="truncate font-medium text-navy-900">{{ $desa->namaLengkap() }}</p>
@@ -161,7 +161,7 @@
                     </x-ui.lencana>
                 </div>
 
-                <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-tepi/70 pt-3">
                     <x-ui.tombol varian="sekunder" ukuran="kecil" :href="route('wilayah.desa.edit', $desa)">Edit</x-ui.tombol>
 
                     @php
@@ -180,14 +180,14 @@
                 </div>
             </div>
         @empty
-            <div class="rounded-xl border border-slate-200 bg-white shadow-kartu">
+            <div class="panel">
                 <x-ui.kosong judul="Desa/kelurahan tidak ditemukan"
                              deskripsi="Ubah kata kunci pencarian atau filter yang dipakai."/>
             </div>
         @endforelse
 
         @if ($daftarDesa->hasPages())
-            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-kartu">
+            <div class="panel px-4 py-3">
                 {{ $daftarDesa->links() }}
             </div>
         @endif

@@ -19,7 +19,7 @@
 
     {{-- ── Pencarian dan filter ── --}}
     <form method="GET" action="{{ route('instansi.index') }}"
-          class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
+          class="panel p-4">
         <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_auto]">
             <div>
                 <label for="cari" class="sr-only">Cari instansi</label>
@@ -53,11 +53,11 @@
     </p>
 
     {{-- ── Tabel: layar sedang ke atas ── --}}
-    <div class="mt-3 hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-kartu md:block">
+    <div class="mt-3 hidden overflow-hidden panel md:block">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table class="min-w-full divide-y divide-tepi text-sm">
                 <thead>
-                    <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <tr class="bg-permukaan text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                         <th scope="col" class="px-5 py-3">Instansi</th>
                         <th scope="col" class="hidden px-5 py-3 lg:table-cell">Kontak</th>
                         <th scope="col" class="px-5 py-3">Status</th>
@@ -66,9 +66,9 @@
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-tepi/70">
                     @forelse ($daftarInstansi as $instansi)
-                        <tr class="transition-colors hover:bg-slate-50/70">
+                        <tr class="transition-colors hover:bg-permukaan">
                             <td class="px-5 py-3.5">
                                 <p class="font-medium text-navy-900">{{ $instansi->nama }}</p>
                                 @if ($instansi->singkatan)
@@ -128,7 +128,7 @@
         </div>
 
         @if ($daftarInstansi->hasPages())
-            <div class="border-t border-slate-200 px-5 py-3">
+            <div class="border-t border-tepi px-5 py-3">
                 {{ $daftarInstansi->links() }}
             </div>
         @endif
@@ -137,7 +137,7 @@
     {{-- ── Daftar kartu: layar kecil ── --}}
     <div class="mt-3 space-y-3 md:hidden">
         @forelse ($daftarInstansi as $instansi)
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-kartu">
+            <div class="panel p-4">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="font-medium text-navy-900">{{ $instansi->nama }}</p>
@@ -158,7 +158,7 @@
                     Tercatat pada {{ $instansi->penyalurans_count }} kegiatan penyaluran
                 </p>
 
-                <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-tepi/70 pt-3">
                     <x-ui.tombol varian="sekunder" ukuran="kecil" :href="route('instansi.edit', $instansi)">Edit</x-ui.tombol>
 
                     @php
@@ -177,14 +177,14 @@
                 </div>
             </div>
         @empty
-            <div class="rounded-xl border border-slate-200 bg-white shadow-kartu">
+            <div class="panel">
                 <x-ui.kosong judul="Instansi tidak ditemukan"
                              deskripsi="Ubah kata kunci pencarian atau filter yang dipakai."/>
             </div>
         @endforelse
 
         @if ($daftarInstansi->hasPages())
-            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-kartu">
+            <div class="panel px-4 py-3">
                 {{ $daftarInstansi->links() }}
             </div>
         @endif
