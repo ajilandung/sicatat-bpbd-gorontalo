@@ -49,7 +49,7 @@
 
         <div class="fixed inset-0 flex items-end justify-center p-4 sm:items-center">
             <div x-show="buka" x-transition @click.outside="tutup()"
-                 class="w-full max-w-md rounded-xl bg-white p-6 text-left shadow-naik">
+                 class="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 text-left shadow-naik">
                 <h2 id="{{ $idDialog }}-judul" class="text-base font-semibold text-navy-900">{{ $judul }}</h2>
                 <p id="{{ $idDialog }}-pesan" class="mt-2 text-sm leading-relaxed text-slate-600">{{ $pesan }}</p>
 

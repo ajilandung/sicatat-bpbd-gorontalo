@@ -3,7 +3,7 @@
 @php
     $galat = $errors->has($nama);
 
-    $kelas = 'block h-11 w-full rounded-lg border-slate-300 pl-10 pr-11 text-sm text-navy-900 shadow-kartu transition-colors
+    $kelas = 'block h-11 w-full rounded-lg border-slate-300 pl-10 pr-11 text-base text-navy-900 shadow-kartu sm:text-sm transition-colors
               placeholder:text-slate-400 focus:border-air-500 focus:ring-1 focus:ring-air-500'
         .($galat ? ' border-red-400 focus:border-red-500 focus:ring-red-500' : '');
 @endphp

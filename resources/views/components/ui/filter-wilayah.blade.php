@@ -61,7 +61,7 @@
         <label for="kabupaten_id" class="mb-1.5 block text-xs font-medium text-slate-500">Kabupaten/Kota</label>
 
         <select name="kabupaten_id" id="kabupaten_id" x-model="kabupatenId" @change="muatKecamatan()"
-                class="block h-11 w-full rounded-lg border-slate-300 py-0 text-sm text-navy-900 shadow-kartu
+                class="block h-11 w-full rounded-lg border-slate-300 py-0 text-base text-navy-900 shadow-kartu sm:text-sm
                        transition-colors focus:border-air-500 focus:ring-1 focus:ring-air-500">
             <option value="">Semua kabupaten/kota</option>
             @foreach ($opsiKabupaten as $id => $nama)
@@ -75,7 +75,7 @@
 
         <select name="kecamatan_id" id="kecamatan_id" x-model="kecamatanId" @change="muatDesa()"
                 :disabled="! kabupatenId"
-                class="block h-11 w-full rounded-lg border-slate-300 py-0 text-sm text-navy-900 shadow-kartu
+                class="block h-11 w-full rounded-lg border-slate-300 py-0 text-base text-navy-900 shadow-kartu sm:text-sm
                        transition-colors focus:border-air-500 focus:ring-1 focus:ring-air-500
                        disabled:bg-slate-100 disabled:text-slate-400">
             <option value="">Semua kecamatan</option>
@@ -89,7 +89,7 @@
         <label for="desa_id" class="mb-1.5 block text-xs font-medium text-slate-500">Desa/Kelurahan</label>
 
         <select name="desa_id" id="desa_id" x-model="desaId" :disabled="! kecamatanId"
-                class="block h-11 w-full rounded-lg border-slate-300 py-0 text-sm text-navy-900 shadow-kartu
+                class="block h-11 w-full rounded-lg border-slate-300 py-0 text-base text-navy-900 shadow-kartu sm:text-sm
                        transition-colors focus:border-air-500 focus:ring-1 focus:ring-air-500
                        disabled:bg-slate-100 disabled:text-slate-400">
             <option value="">Semua desa/kelurahan</option>

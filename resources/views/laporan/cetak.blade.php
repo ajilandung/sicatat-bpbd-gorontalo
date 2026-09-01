@@ -32,8 +32,12 @@
             line-height: 1.45;
         }
 
+        /* Lebar kertas A4 dibatasi lebar layar, supaya halaman ini tidak
+           memaksa geseran mendatar ketika dibuka dari ponsel. Ukuran cetaknya
+           sendiri tidak terpengaruh: yang menentukan hasil di kertas adalah
+           aturan `@page` di atas dan blok `@media print` di bawah. */
         .kertas {
-            width: 21cm;
+            width: min(21cm, 100%);
             min-height: 29.7cm;
             margin: 1.5cm auto;
             padding: 1.5cm 1.6cm;
@@ -181,6 +185,19 @@
             height: 5.6cm;
             object-fit: cover;
             border: 1px solid #64748b;
+        }
+
+        /* Pratinjau di layar sempit: margin dan lambang kop dikecilkan supaya
+           isinya masih terbaca tanpa digeser. Hanya berlaku di layar — blok
+           `@media print` di bawah mengembalikan ukuran kertas yang sebenarnya. */
+        @media screen and (max-width: 48rem) {
+            .kertas {
+                margin: 0.75rem auto;
+                padding: 1rem 0.9rem;
+                min-height: 0;
+                --tinggi-logo: 1.2cm;
+                --kolom-logo: 2.1cm;
+            }
         }
 
         @media print {

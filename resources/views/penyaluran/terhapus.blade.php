@@ -33,7 +33,8 @@
         </div>
     </form>
 
-    <div class="mt-4 overflow-hidden panel">
+    {{-- ── Tabel: layar sedang ke atas ── --}}
+    <div class="mt-4 hidden overflow-hidden panel md:block">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-tepi text-sm">
                 <thead>
@@ -100,6 +101,65 @@
 
         @if ($daftarPenyaluran->hasPages())
             <div class="border-t border-tepi px-5 py-3">
+                {{ $daftarPenyaluran->links() }}
+            </div>
+        @endif
+    </div>
+
+    {{-- ── Kartu: layar kecil ──
+         Tabel lima kolom tidak terbaca di layar HP tanpa digeser ke samping,
+         jadi datanya disusun ulang sebagai kartu — sama seperti halaman
+         Riwayat Penyaluran. Seluruh keterangan tetap ditampilkan, termasuk
+         waktu penghapusan yang di tabel baru muncul mulai layar lebar. --}}
+    <div class="mt-4 space-y-3 md:hidden">
+        @forelse ($daftarPenyaluran as $penyaluran)
+            <div class="panel p-4">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <p class="font-medium text-navy-900">
+                        {{ $penyaluran->tanggal_penyaluran?->translatedFormat('d M Y') }}
+                    </p>
+
+                    <p class="text-sm">
+                        <span class="font-medium text-navy-900">
+                            {{ number_format($penyaluran->volume_liter, 0, ',', '.') }}
+                        </span>
+                        <span class="text-xs text-slate-500">liter</span>
+                    </p>
+                </div>
+
+                <p class="mt-2 text-sm text-navy-900">
+                    {{ $penyaluran->desas->map->namaLengkap()->implode(', ') }}
+                </p>
+                <p class="text-xs text-slate-500">
+                    {{ $penyaluran->instansis->map->namaRingkas()->implode(', ') ?: '—' }}
+                </p>
+
+                <p class="mt-2 text-xs text-slate-400">
+                    Dihapus {{ $penyaluran->deleted_at?->translatedFormat('d M Y, H:i') ?? '—' }}
+                </p>
+
+                <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-tepi/70 pt-3">
+                    <x-ui.tombol varian="sekunder" ukuran="kecil" :href="route('penyaluran.show', $penyaluran)">
+                        Lihat detail
+                    </x-ui.tombol>
+
+                    <x-ui.konfirmasi
+                        :aksi="route('penyaluran.pulihkan', $penyaluran)"
+                        label="Pulihkan"
+                        judul="Pulihkan data ini?"
+                        pesan="Data akan kembali muncul pada riwayat penyaluran dan ikut dihitung lagi pada rekap serta laporan."
+                        label-konfirmasi="Ya, pulihkan"/>
+                </div>
+            </div>
+        @empty
+            <div class="panel">
+                <x-ui.kosong ikon="sampah" judul="Tidak ada data terhapus"
+                             deskripsi="Data penyaluran yang dihapus admin akan muncul di sini dan masih dapat dipulihkan."/>
+            </div>
+        @endforelse
+
+        @if ($daftarPenyaluran->hasPages())
+            <div class="panel px-4 py-3">
                 {{ $daftarPenyaluran->links() }}
             </div>
         @endif

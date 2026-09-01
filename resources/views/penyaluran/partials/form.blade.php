@@ -165,8 +165,8 @@
                                 </label>
 
                                 <select id="pemilih_kabupaten" x-model="kabupatenId" @change="muatKecamatan()"
-                                        class="block h-11 w-full rounded-lg border-slate-300 bg-white py-0 text-sm
-                                               text-navy-900 shadow-kartu transition-colors focus:border-air-500
+                                        class="block h-11 w-full rounded-lg border-slate-300 bg-white py-0 text-base
+                                               text-navy-900 shadow-kartu transition-colors focus:border-air-500 sm:text-sm
                                                focus:ring-1 focus:ring-air-500">
                                     <option value="">Pilih kabupaten/kota</option>
                                     @foreach ($opsiKabupaten as $id => $nama)
@@ -182,8 +182,8 @@
 
                                 <select id="pemilih_kecamatan" x-model="kecamatanId" @change="muatDesa()"
                                         :disabled="! kabupatenId"
-                                        class="block h-11 w-full rounded-lg border-slate-300 bg-white py-0 text-sm
-                                               text-navy-900 shadow-kartu transition-colors focus:border-air-500
+                                        class="block h-11 w-full rounded-lg border-slate-300 bg-white py-0 text-base
+                                               text-navy-900 shadow-kartu transition-colors focus:border-air-500 sm:text-sm
                                                focus:ring-1 focus:ring-air-500 disabled:bg-slate-100 disabled:text-slate-400">
                                     <option value="">Pilih kecamatan</option>
                                     <template x-for="kecamatan in kecamatans" :key="kecamatan.id">
@@ -274,8 +274,8 @@
 
                     <select id="pemilih_instansi" x-model="instansiId" @change="tambahInstansi()"
                             :disabled="instansiTersisa().length === 0"
-                            class="block h-11 w-full rounded-lg border-slate-300 py-0 text-sm text-navy-900
-                                   shadow-kartu transition-colors focus:border-air-500 focus:ring-1
+                            class="block h-11 w-full rounded-lg border-slate-300 py-0 text-base text-navy-900
+                                   shadow-kartu transition-colors focus:border-air-500 focus:ring-1 sm:text-sm
                                    focus:ring-air-500 disabled:bg-slate-100 disabled:text-slate-400">
                         <option value=""
                                 x-text="instansiTersisa().length === 0
@@ -354,7 +354,7 @@
                 <x-ui.kolom nama="keterangan" label="Keterangan"
                             petunjuk="Catatan bebas, misalnya titik penyaluran yang bukan desa (sekolah, masjid) atau kendala di lapangan.">
                     <textarea name="keterangan" id="keterangan" rows="3"
-                              class="block w-full rounded-lg border-slate-300 text-sm text-navy-900 shadow-kartu
+                              class="block w-full rounded-lg border-slate-300 text-base text-navy-900 shadow-kartu sm:text-sm
                                      transition-colors placeholder:text-slate-400 focus:border-air-500 focus:ring-1
                                      focus:ring-air-500 {{ $errors->has('keterangan') ? 'border-red-400' : '' }}"
                               placeholder="opsional">{{ old('keterangan', $ubah ? $penyaluran->keterangan : '') }}</textarea>
@@ -379,7 +379,7 @@
 
             <div class="fixed inset-0 flex items-end justify-center p-4 sm:items-center">
                 <div x-show="konfirmasiDuplikat" x-transition
-                     class="w-full max-w-lg rounded-xl bg-white p-6 text-left shadow-naik">
+                     class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 text-left shadow-naik">
                     <h2 id="duplikat-judul" class="text-base font-semibold text-navy-900">
                         Kegiatan serupa sudah tercatat
                     </h2>

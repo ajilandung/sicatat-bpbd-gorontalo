@@ -17,10 +17,12 @@
          grafik, dan kedua daftar di bawahnya. Formulirnya mengarah ke URL
          yang sedang dibuka, sehingga satu berkas ini melayani dashboard
          ketiga role tanpa perlu tahu route mana yang aktif. --}}
-    <form method="GET" action="{{ url()->current() }}" class="flex items-center gap-2">
-        <label for="periode" class="text-xs font-medium text-slate-500">Periode</label>
+    <form method="GET" action="{{ url()->current() }}" class="flex w-full items-center gap-2 sm:w-auto">
+        <label for="periode" class="shrink-0 text-xs font-medium text-slate-500">Periode</label>
 
-        <div class="w-48">
+        {{-- Mengisi sisa lebar di layar kecil supaya tidak berdesakan dengan
+             labelnya, lalu kembali ke lebar tetap mulai tablet. --}}
+        <div class="min-w-0 flex-1 sm:w-48 sm:flex-none">
             <x-ui.pilihan nama="periode" :nilai="$periodeAktif" :opsi="$opsiPeriode"
                           onchange="this.form.submit()"/>
         </div>
