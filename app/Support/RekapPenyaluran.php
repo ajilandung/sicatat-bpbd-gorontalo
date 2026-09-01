@@ -281,6 +281,48 @@ class RekapPenyaluran
     }
 
     /**
+     * Rincian kegiatan yang dikelompokkan per tanggal kejadian, lalu per
+     * kabupaten/kota. Bentuknya sengaja dibuat sama dengan bagian "Upaya yang
+     * Dilakukan" pada laporan Pusdalops PB — satu tabel untuk setiap tanggal,
+     * berisi lokasi, jumlah KK/jiwa, pelaksana, dan air tersalur — supaya
+     * halaman cetak tinggal menuangkannya tanpa menghitung apa pun sendiri.
+     *
+     * Urutan tanggalnya menaik agar laporan terbaca sebagai kronologi kegiatan,
+     * berbeda dengan halaman riwayat yang menampilkan data terbaru lebih dulu.
+     *
+     * Kegiatan yang mencakup beberapa kabupaten dikelompokkan di bawah satu
+     * judul gabungan, bukan diulang pada masing-masing kabupaten, supaya
+     * volume airnya tidak terbaca dua kali.
+     *
+     * @return Collection<int, array{tanggal: Carbon, kelompok: Collection<int, array{kabupaten: string, kegiatan: Collection<int, Penyaluran>}>, jumlah_kegiatan: int, total_liter: int, total_kk: int, total_jiwa: int}>
+     */
+    public function perTanggal(): Collection
+    {
+        return $this->dasar()
+            ->with(['desas.kecamatan.kabupaten', 'instansis'])
+            ->orderBy('tanggal_penyaluran')
+            ->orderBy('id')
+            ->get()
+            ->groupBy(fn (Penyaluran $penyaluran) => $penyaluran->tanggal_penyaluran->toDateString())
+            ->map(fn (Collection $kegiatan, string $tanggal) => [
+                'tanggal' => Carbon::parse($tanggal),
+                'kelompok' => $kegiatan
+                    ->groupBy(fn (Penyaluran $penyaluran) => $penyaluran->kabupatenTersentuh()->implode(' / ') ?: '—')
+                    ->map(fn (Collection $isi, string $kabupaten) => [
+                        'kabupaten' => $kabupaten,
+                        'kegiatan' => $isi->values(),
+                    ])
+                    ->sortKeys()
+                    ->values(),
+                'jumlah_kegiatan' => $kegiatan->count(),
+                'total_liter' => (int) $kegiatan->sum('volume_liter'),
+                'total_kk' => (int) $kegiatan->sum('jumlah_kk'),
+                'total_jiwa' => (int) $kegiatan->sum('jumlah_jiwa'),
+            ])
+            ->values();
+    }
+
+    /**
      * Pengelompokan per bulan dilakukan di basis data, dan fungsi tanggalnya
      * berbeda antara MySQL yang dipakai aplikasi dan SQLite yang dipakai
      * pengujian. Hanya bagian ini yang perlu tahu perbedaannya.

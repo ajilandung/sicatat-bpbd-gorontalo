@@ -40,7 +40,7 @@
         [
             'judul' => 'Pelaporan',
             'item' => [
-                ['label' => 'Laporan & Export', 'ikon' => 'document', 'siap' => false, 'fase' => 5],
+                ['label' => 'Laporan & Export', 'route' => 'laporan.index', 'aktifJika' => 'laporan.*', 'ikon' => 'document', 'siap' => true, 'kecualiPetugas' => true],
             ],
         ],
     ];
@@ -108,6 +108,7 @@
                     <ul class="space-y-0.5">
                         @foreach ($grup['item'] as $item)
                             @continue(($item['admin'] ?? false) && ! $user->isAdmin())
+                            @continue(($item['kecualiPetugas'] ?? false) && $user->isPetugas())
 
                             <li>
                                 @if ($item['siap'])

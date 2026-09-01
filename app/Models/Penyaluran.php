@@ -96,6 +96,49 @@ class Penyaluran extends Model
     }
 
     /**
+     * Desa penerima yang sudah dikelompokkan menurut kecamatannya, mengikuti
+     * cara laporan Pusdalops menuliskan kolom lokasi:
+     *
+     *     KEC. BONE PANTAI
+     *       - DESA TONGO
+     *       - DESA BATU HIJAU
+     *
+     * @return Collection<int, array{kecamatan: string, desa: array<int, string>}>
+     */
+    public function wilayahPerKecamatan(): Collection
+    {
+        $this->loadMissing('desas.kecamatan.kabupaten');
+
+        return $this->desas
+            ->sortBy(fn (Desa $desa) => $desa->kecamatan?->nama.' '.$desa->nama)
+            ->groupBy(fn (Desa $desa) => $desa->kecamatan?->nama ?? '—')
+            ->map(fn (Collection $desas, string $kecamatan) => [
+                'kecamatan' => $kecamatan,
+                'desa' => $desas->map(fn (Desa $desa) => $desa->namaLengkap())->values()->all(),
+            ])
+            ->values();
+    }
+
+    /**
+     * Nama kabupaten/kota yang tersentuh kegiatan ini. Biasanya hanya satu,
+     * tetapi tetap dikembalikan sebagai daftar karena satu kegiatan dapat
+     * mencakup beberapa desa yang berbeda kabupaten.
+     *
+     * @return Collection<int, string>
+     */
+    public function kabupatenTersentuh(): Collection
+    {
+        $this->loadMissing('desas.kecamatan.kabupaten');
+
+        return $this->desas
+            ->map(fn (Desa $desa) => $desa->kecamatan?->kabupaten?->namaLengkap())
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+    }
+
+    /**
      * Rekaman isi data untuk keperluan riwayat perubahan. Desa dan instansi
      * dicatat sebagai nama, bukan id, supaya riwayat lama tetap terbaca
      * walaupun master datanya berubah nama di kemudian hari.

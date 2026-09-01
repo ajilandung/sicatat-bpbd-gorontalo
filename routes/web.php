@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstansiController;
+use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\Pengguna\PenggunaController;
 use App\Http\Controllers\Pengguna\ResetPasswordController;
 use App\Http\Controllers\PenyaluranController;
@@ -63,6 +64,15 @@ Route::middleware(['auth', 'aktif'])->group(function () {
             // terhapus sebelum memutuskan memulihkannya. Role lain ditolak
             // di controller.
             Route::get('{penyaluran}', [PenyaluranController::class, 'show'])->name('show')->withTrashed();
+        });
+
+        // Laporan dan export (FR-22, FR-23, FR-24). Terbuka untuk admin dan
+        // pimpinan; petugas pada MVP berperan sebagai sumber data lapangan
+        // sehingga tidak diberi akses laporan (§9).
+        Route::prefix('laporan')->name('laporan.')->middleware('role:admin,pimpinan')->group(function () {
+            Route::get('/', [LaporanController::class, 'index'])->name('index');
+            Route::get('cetak', [LaporanController::class, 'cetak'])->name('cetak');
+            Route::get('excel', [LaporanController::class, 'excel'])->name('excel');
         });
 
         // Dropdown wilayah bertingkat (§7). Dipakai form input dan panel

@@ -9,7 +9,7 @@ use App\Models\Instansi;
 use App\Models\Kabupaten;
 use App\Models\Penyaluran;
 use App\Models\RiwayatPenyaluran;
-use App\Models\User;
+use App\Support\FilterPenyaluran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -35,7 +35,7 @@ class PenyaluranController extends Controller
      */
     public function index(Request $request): View
     {
-        $filter = $this->filterDari($request);
+        $filter = FilterPenyaluran::dari($request);
 
         $daftar = Penyaluran::query()
             ->saring($filter)
@@ -48,8 +48,8 @@ class PenyaluranController extends Controller
         return view('penyaluran.index', [
             'daftarPenyaluran' => $daftar,
             'filter' => $filter,
-            'adaFilter' => $this->adaFilter($filter),
-        ] + $this->opsiFilter());
+            'adaFilter' => FilterPenyaluran::aktif($filter),
+        ] + FilterPenyaluran::opsi());
     }
 
     public function create(): View
@@ -246,46 +246,6 @@ class PenyaluranController extends Controller
                 'volume' => number_format((float) $penyaluran->volume_liter, 0, ',', '.').' liter',
                 'url' => route('penyaluran.show', $penyaluran),
             ])->all());
-    }
-
-    /**
-     * Nilai filter yang sedang aktif, dipakai query maupun tampilan form.
-     *
-     * @return array<string, string>
-     */
-    private function filterDari(Request $request): array
-    {
-        $kunci = [
-            'cari', 'tanggal_mulai', 'tanggal_akhir',
-            'kabupaten_id', 'kecamatan_id', 'desa_id', 'instansi_id', 'user_id',
-        ];
-
-        return collect($kunci)
-            ->mapWithKeys(fn (string $nama) => [$nama => (string) $request->query($nama, '')])
-            ->all();
-    }
-
-    /**
-     * @param  array<string, string>  $filter
-     */
-    private function adaFilter(array $filter): bool
-    {
-        return collect($filter)->contains(fn (string $nilai) => $nilai !== '');
-    }
-
-    /**
-     * Pilihan untuk panel filter. Instansi dan pengguna nonaktif tetap
-     * ditawarkan karena riwayat lama yang menyebutnya masih harus bisa dicari.
-     *
-     * @return array<string, mixed>
-     */
-    private function opsiFilter(): array
-    {
-        return [
-            'opsiKabupaten' => Kabupaten::opsi(),
-            'opsiInstansi' => Instansi::query()->orderBy('nama')->pluck('nama', 'id')->all(),
-            'opsiPenginput' => User::query()->orderBy('name')->pluck('name', 'id')->all(),
-        ];
     }
 
     /**
