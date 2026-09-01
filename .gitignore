@@ -20,6 +20,12 @@
 /public/storage
 /storage/*.key
 /storage/pail
+
+# Foto dokumentasi kegiatan penyaluran. Sudah tercakup oleh
+# storage/app/private/.gitignore bawaan Laravel, tetapi ditulis ulang di sini
+# supaya tetap terjaga bila berkas bawaan itu tersapu saat pembaruan kerangka
+# kerja — foto lapangan tidak boleh ikut terunggah ke repositori.
+/storage/app/private/dokumentasi
 /vendor
 _ide_helper.php
 Homestead.json
