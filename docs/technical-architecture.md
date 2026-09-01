@@ -4,9 +4,14 @@
 | | |
 |---|---|
 | **Instansi** | BPBD Provinsi Gorontalo |
-| **Versi dokumen** | 1.0 |
+| **Versi dokumen** | 1.1 |
 | **Acuan** | [`PRD.md`](PRD.md) — MVP 1.0 |
 | **Tahap** | Tahap 2 dari PRD bagian 14 |
+
+> **Perubahan pada versi 1.1.** Dokumen disesuaikan dengan sistem yang benar-benar
+> terbangun sampai Fase 6: bentuk export PDF dan Excel yang ternyata tidak memakai
+> pustaka pihak ketiga ([§9.2](#92-laporan--export-prd-88-89)), dokumentasi foto kegiatan
+> ([§9.4](#94-dokumentasi-foto-kegiatan)), serta pembetulan peta route dan matriks hak akses.
 
 ---
 
@@ -30,14 +35,14 @@ Pilihan ini diambil karena:
       │ Alpine.js          │            ↓                             │
       │ (fetch JSON        │      Eloquent Model / Query Builder      │
       │  wilayah)          │            ↓                             │
-      └──────────────────► │      Blade View / DomPDF / Excel         │
-                           └────────────────┬─────────────────────────┘
-                                            │ PDO
-                                            ▼
-                                   ┌──────────────────┐
-                                   │   MySQL 8.4      │
-                                   │   db: sicatat    │
-                                   └──────────────────┘
+      └──────────────────► │   Blade View / halaman cetak / CSV       │
+                           └──────────┬───────────────┬───────────────┘
+                                      │ PDO           │ berkas foto
+                                      ▼               ▼
+                             ┌──────────────────┐  ┌──────────────────────┐
+                             │   MySQL 8.4      │  │ storage/app/private/ │
+                             │   db: sicatat    │  │ dokumentasi/         │
+                             └──────────────────┘  └──────────────────────┘
 ```
 
 ---
@@ -56,8 +61,9 @@ Versi berikut sudah diverifikasi terpasang di mesin pengembangan (Laragon).
 | Build tool | Vite | 8.x | `npm run dev` / `npm run build` |
 | JS interaksi | Alpine.js | 3.x | Dropdown bertingkat, konfirmasi hapus, toggle sidebar |
 | Grafik | Chart.js | 4.x | Grafik penyaluran per bulan (FR-21) |
-| Export PDF | `barryvdh/laravel-dompdf` | 3.x | Render Blade → PDF (FR-23) |
-| Export Excel | `maatwebsite/excel` | 3.x | Export `.xlsx` (FR-24) — lihat catatan §12 |
+| Export PDF | — (dialog cetak peramban) | — | Halaman cetak ber-CSS kertas, disimpan lewat "Simpan sebagai PDF" (FR-23) — lihat §9.2 |
+| Export Excel | — (CSV bawaan PHP) | — | `streamDownload` + `fputcsv`, dibuka langsung oleh Excel (FR-24) — lihat §9.2 |
+| Pengolah gambar | GD | bawaan PHP | Mengecilkan foto dokumentasi ke lebar 1600 px (§9.4) |
 | Web server (dev) | `php artisan serve` / Laragon Apache | — | |
 | Web server (prod) | Apache atau Nginx | — | Document root diarahkan ke `public/` |
 
@@ -66,6 +72,8 @@ Versi berikut sudah diverifikasi terpasang di mesin pengembangan (Laragon).
 - Livewire / Inertia / Vue / React — tidak diperlukan untuk cakupan MVP, menambah kompleksitas build.
 - Laravel Breeze / starter kit — sudah bukan jalur resmi di Laravel 13, dan sistem ini tidak butuh registrasi publik. Autentikasi dibuat manual (lihat §5).
 - Redis / queue worker — tidak ada pekerjaan asinkron di MVP. Export dijalankan sinkron.
+- Pustaka PDF dan Excel pihak ketiga — lihat §9.2; keduanya digantikan kemampuan bawaan yang hasilnya justru lebih dekat dengan dokumen asli kantor.
+- Pustaka pengolah gambar (Intervention Image) — pengecilan foto cukup dikerjakan GD bawaan PHP dalam beberapa baris.
 - Paket permission pihak ketiga (Spatie) — hanya ada 3 role tetap, cukup dengan kolom `role` dan middleware sendiri.
 
 ---
@@ -81,6 +89,7 @@ D:\Sites\Sicatat\
 │   │   │   ├── Auth/PasswordController.php    ← ubah password sendiri
 │   │   │   ├── DashboardController.php
 │   │   │   ├── PenyaluranController.php
+│   │   │   ├── FotoPenyaluranController.php   ← dokumentasi foto kegiatan
 │   │   │   ├── Wilayah/KabupatenController.php
 │   │   │   ├── Wilayah/KecamatanController.php
 │   │   │   ├── Wilayah/DesaController.php
@@ -101,9 +110,12 @@ D:\Sites\Sicatat\
 │   │   ├── Kecamatan.php
 │   │   ├── Desa.php
 │   │   ├── Instansi.php
-│   │   └── Penyaluran.php
-│   ├── Exports/PenyaluranExport.php           ← Maatwebsite Excel
-│   └── Support/RekapPenyaluran.php            ← kalkulasi ringkasan dashboard & laporan
+│   │   ├── Penyaluran.php
+│   │   ├── RiwayatPenyaluran.php              ← jejak koreksi data (§9.3)
+│   │   └── FotoPenyaluran.php                 ← dokumentasi foto (§9.4)
+│   └── Support/
+│       ├── FilterPenyaluran.php               ← satu bentuk filter untuk seluruh halaman
+│       └── RekapPenyaluran.php                ← kalkulasi ringkasan dashboard & laporan
 ├── database/
 │   ├── migrations/
 │   └── seeders/
@@ -120,11 +132,12 @@ D:\Sites\Sicatat\
 │       ├── components/ui/                      ← input, pilihan, password, tombol, lencana, notifikasi, konfirmasi
 │       ├── auth/{login,ubah-password}.blade.php
 │       ├── dashboard/{admin,petugas,pimpinan}.blade.php
-│       ├── penyaluran/{index,create,edit,show}.blade.php
+│       ├── penyaluran/{index,create,edit,show,terhapus}.blade.php
 │       ├── wilayah/{kabupaten,kecamatan,desa}/
 │       ├── instansi/
 │       ├── pengguna/{index,create,edit,show,reset-password}.blade.php
-│       └── laporan/{index,pdf}.blade.php
+│       └── laporan/{index,cetak}.blade.php     ← `cetak` berdiri sendiri, ber-CSS kertas
+├── storage/app/private/dokumentasi/            ← berkas foto, di luar jangkauan web (§9.4)
 └── routes/web.php
 ```
 
@@ -182,13 +195,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/penyaluran', [PenyaluranController::class, 'index']);
     Route::get('/penyaluran/{penyaluran}', [PenyaluranController::class, 'show']);
-    Route::get('/laporan', [LaporanController::class, 'index']);
-    Route::get('/laporan/pdf', [LaporanController::class, 'pdf']);
-    Route::get('/laporan/excel', [LaporanController::class, 'excel']);
+    Route::get('/penyaluran/foto/{foto}', [FotoPenyaluranController::class, 'tampil']);
+
+    // Admin dan pimpinan
+    Route::middleware('role:admin,pimpinan')->group(function () {
+        Route::get('/laporan', [LaporanController::class, 'index']);
+        Route::get('/laporan/cetak', [LaporanController::class, 'cetak']);
+        Route::get('/laporan/excel', [LaporanController::class, 'excel']);
+    });
 
     // Hanya admin
     Route::middleware('role:admin')->group(function () {
         Route::resource('penyaluran', PenyaluranController::class)->except(['index', 'show']);
+        Route::post('/penyaluran/{penyaluran}/foto', [FotoPenyaluranController::class, 'store']);
+        Route::delete('/penyaluran/foto/{foto}', [FotoPenyaluranController::class, 'destroy']);
         Route::resource('wilayah/kabupaten', KabupatenController::class);
         Route::resource('wilayah/kecamatan', KecamatanController::class);
         Route::resource('wilayah/desa', DesaController::class);
@@ -210,7 +230,10 @@ Diturunkan dari PRD bagian 9.
 | Riwayat penyaluran (lihat & filter) | ✅ | ✅ | ✅ |
 | Detail penyaluran | ✅ | ✅ | ✅ |
 | Tambah / ubah / hapus penyaluran | ✅ | ❌ | ❌ |
-| Laporan + export PDF & Excel | ✅ | ✅ | ✅ |
+| Lihat foto dokumentasi kegiatan | ✅ | ✅ | ✅ |
+| Tambah / hapus foto dokumentasi | ✅ | ❌ | ❌ |
+| Riwayat perubahan pada halaman detail | ✅ | ❌ | ❌ |
+| Laporan + export PDF & Excel | ✅ | ✅ | ❌ |
 | Data wilayah (CRUD) | ✅ | ❌ | ❌ |
 | Data instansi (CRUD) | ✅ | ❌ | ❌ |
 | Manajemen pengguna (lihat, tambah, ubah) | ✅ | ❌ | ❌ |
@@ -219,7 +242,7 @@ Diturunkan dari PRD bagian 9.
 
 Menu di sidebar disembunyikan bila role tidak berhak, **dan** tetap dijaga di sisi route/middleware — menyembunyikan tautan saja bukan pengamanan.
 
-Sesuai PRD, role **Petugas** pada MVP belum punya kemampuan input; aksesnya sama dengan Pimpinan (baca saja). Kolom `role` sudah menyediakan tempatnya, sehingga menambah hak input di tahap berikutnya cukup mengubah middleware, bukan mengubah struktur data.
+Sesuai PRD bagian 9, role **Petugas** pada MVP berperan sebagai sumber data lapangan: belum punya kemampuan input, dan halaman laporan disediakan untuk Admin dan Pimpinan saja. Yang dapat dibukanya adalah dashboard, riwayat penyaluran, serta detail kegiatan beserta foto dokumentasinya. Kolom `role` sudah menyediakan tempatnya, sehingga menambah hak input di tahap berikutnya cukup mengubah middleware, bukan mengubah struktur data.
 
 Setiap role punya halaman dashboard sendiri (`/dashboard/admin`, `/dashboard/petugas`, `/dashboard/pimpinan`) yang masing-masing dijaga middleware `role:`. URL `/dashboard` hanya pintu masuk yang mengalihkan pengguna ke dashboard miliknya.
 
@@ -250,9 +273,12 @@ Dua aturan otorisasi bergantung pada objek, bukan sekadar role, sehingga ditanga
 | PUT | `/penyaluran/{id}` | `PenyaluranController@update` | admin | FR-09 |
 | DELETE | `/penyaluran/{id}` | `PenyaluranController@destroy` — *soft delete* | admin | FR-10 |
 | PATCH | `/penyaluran/{id}/pulihkan` | `PenyaluranController@pulihkan` | admin | FR-10 |
-| GET | `/laporan` | `LaporanController@index` | semua | FR-22 |
-| GET | `/laporan/pdf` | `LaporanController@pdf` | semua | FR-23 |
-| GET | `/laporan/excel` | `LaporanController@excel` | semua | FR-24 |
+| GET | `/penyaluran/foto/{id}` | `FotoPenyaluranController@tampil` — menyajikan berkas dari disk privat | semua | — |
+| POST | `/penyaluran/{id}/foto` | `FotoPenyaluranController@store` — beberapa foto sekaligus | admin | — |
+| DELETE | `/penyaluran/foto/{id}` | `FotoPenyaluranController@destroy` — permanen, beserta berkasnya | admin | — |
+| GET | `/laporan` | `LaporanController@index` | admin, pimpinan | FR-22 |
+| GET | `/laporan/cetak` | `LaporanController@cetak` — halaman siap cetak / Simpan sebagai PDF | admin, pimpinan | FR-23 |
+| GET | `/laporan/excel` | `LaporanController@excel` — unduhan CSV | admin, pimpinan | FR-24 |
 | GET | `/wilayah/kabupaten` | `Wilayah\KabupatenController@index` — daftar saja | admin | FR-04 |
 | GET | `/wilayah/kecamatan` | `Wilayah\KecamatanController@index` — daftar saja | admin | FR-05 |
 | resource | `/wilayah/desa` (kecuali `show`, `destroy`) | `Wilayah\DesaController` | admin | FR-06 |
@@ -349,14 +375,16 @@ Diterapkan sebagai Eloquent *local scope* pada model `Penyaluran`, sehingga poto
 
 ### 9.2 Laporan & Export (PRD 8.8, 8.9)
 
-Halaman laporan memakai **filter yang sama** dengan halaman riwayat, lalu menampilkan blok ringkasan (periode, total air, jumlah wilayah, total KK, total jiwa) di atas tabel rincian.
+Halaman laporan memakai **filter yang sama** dengan halaman riwayat, lalu menampilkan blok ringkasan (periode, total air, jumlah wilayah, total KK, total jiwa) di atas tabel rincian. Halaman ini terbuka untuk Admin dan Pimpinan; Petugas tidak diberi akses (PRD bagian 9).
 
-Kedua format export sengaja dibuat **berbeda bentuk**, karena kegunaannya memang berbeda.
+Kedua format export sengaja dibuat **berbeda bentuk**, karena kegunaannya memang berbeda — dan keduanya dikerjakan tanpa pustaka pihak ketiga.
 
-- **PDF (FR-23)** — `barryvdh/laravel-dompdf` merender view `laporan/pdf.blade.php`. View ini terpisah dari view web dan memakai CSS sederhana, karena DomPDF tidak mendukung Tailwind/Flexbox modern. Susunannya **meniru dokumen infografis yang selama ini dibuat kantor**: dikelompokkan per tanggal → kabupaten → kecamatan → desa, dengan "Total tersalur" pada tiap tanggal, lalu ditutup blok "Ringkasan Keseluruhan" berisi total liter dan sebaran per kabupaten (jumlah kecamatan dan desa). Tanpa kop surat resmi dan tanpa blok tanda tangan (lihat §12.1).
-- **Excel (FR-24)** — `maatwebsite/excel` mengekspor `.xlsx` berbentuk **tabel datar**, satu baris per kegiatan dengan kolom Tanggal, Kabupaten, Kecamatan, Desa, KK, Jiwa, Volume, Pelaksana, dan Penginput, ditambah baris total di bagian bawah. Bentuk ini siap diolah ulang dengan *pivot table*. Untuk kegiatan yang mencakup beberapa desa, nama-nama desanya digabung dalam satu sel dan diberi penanda bahwa angkanya adalah angka gabungan.
+- **PDF (FR-23)** — view `laporan/cetak.blade.php` adalah halaman HTML biasa yang berdiri sendiri di luar `layouts.app`, memakai CSS kertas sendiri (`@page A4`, ukuran titik, garis tabel, aturan pemenggalan halaman). Berkas PDF-nya dihasilkan lewat dialog cetak peramban — "Simpan sebagai PDF". Pendekatan ini dipilih setelah menimbang DomPDF: hasil cetaknya persis seperti yang tampil di layar dan dapat diperiksa admin sebelum disimpan, sementara DomPDF menuntut CSS terbatas dan hasilnya hanya diketahui setelah berkas jadi. Bentuk halamannya mengikuti dokumen **"Laporan Sementara Kejadian dan Dampak Bencana"** milik Pusdalops PB BPBD Provinsi Gorontalo: kop instansi, A. Info kejadian, B. Upaya yang dilakukan (tabel kegiatan per tanggal beserta totalnya), C. Penutup dan tanda tangan, lalu **Lampiran Dokumentasi** bila diminta (§9.4). Bagian dokumen asli yang datanya tidak dipegang sistem — kronologi, kendala, sarana prasarana — sengaja tidak dicetak agar laporan tidak memuat keterangan yang tidak dapat dipertanggungjawabkan isinya.
+- **Excel (FR-24)** — `response()->streamDownload()` dengan `fputcsv` menghasilkan **CSV** berisi satu baris per kegiatan: Tanggal, Kabupaten, Kecamatan, Desa, KK, Jiwa, Instansi, Volume, Keterangan, Penginput, dan Waktu Input. Berkas diawali BOM dan penanda `sep=,` supaya Excel membacanya benar apa pun setelan wilayah komputernya. Satu baris per **kegiatan**, bukan per desa, karena angka KK/jiwa/volume memang berlaku gabungan — memecahnya per desa akan membuat `SUM` di Excel menghitung volume yang sama berkali-kali. Kolom KK dan jiwa yang tidak tercatat dibiarkan kosong, bukan diisi nol, agar tidak terbaca sebagai "tidak ada warga terdampak".
 
 Kedua export **mengalirkan filter yang sedang aktif**, sehingga isi berkas selalu sama dengan yang terlihat di layar.
+
+Isian kop dan penanda tangan bukan data kegiatan, jadi tidak disimpan di tabel mana pun — hanya diingat lewat cache sebagai isian bawaan laporan berikutnya.
 
 ### 9.3 Data Susulan dan Koreksi Historis
 
@@ -379,6 +407,30 @@ Diwujudkan sebagai tabel `riwayat_penyalurans` (Database Schema §3.9), bukan pa
 
 **Peringatan kegiatan serupa.** Sebelum menyimpan, sistem memeriksa apakah sudah ada kegiatan lain pada tanggal yang sama yang menyentuh salah satu desa terpilih. Bila ada, form dikembalikan beserta daftar kegiatan tersebut dan admin diminta menegaskan lewat kotak konfirmasi. Duplikat tetap **tidak dilarang** — satu desa memang bisa menerima lebih dari satu kegiatan dalam sehari (§12.2 #2) — sistem hanya memastikan admin sudah melihatnya lebih dulu.
 
+### 9.4 Dokumentasi Foto Kegiatan
+
+Foto dokumentasi **selalu menempel pada satu kegiatan penyaluran** dan tidak pernah berdiri sendiri. Aturan ini ditetapkan pemilik proyek dan menentukan seluruh rancangannya.
+
+**Alurnya sengaja dua langkah.** Kegiatan disimpan lebih dulu lewat form penyaluran biasa; setelah kegiatan punya id, admin membuka halaman **Detail Penyaluran** dan menambahkan foto dari bagian *Dokumentasi Kegiatan*. Form tambah kegiatan tidak menerima unggahan sama sekali. Dengan begitu tidak ada foto yatim yang menunggu kegiatannya jadi, dan foto boleh menyusul kapan saja setelah kegiatan tercatat — sejalan dengan aturan data susulan §9.3.
+
+**Foto tidak menyimpan tanggalnya sendiri.** Tabel `foto_penyalurans` (Database Schema §3.10) tidak punya kolom tanggal; `FotoPenyaluran::tanggal()` membaca `tanggal_penyaluran` milik kegiatan induknya. Admin tidak pernah diminta mengisi tanggal per foto, dan koreksi tanggal kegiatan otomatis membawa seluruh fotonya.
+
+| Aspek | Ketentuan |
+|---|---|
+| Hak akses | Menambah dan menghapus: admin. Melihat: seluruh role yang login — sama dengan halaman detailnya |
+| Penyimpanan | Disk `local` (`storage/app/private/dokumentasi/{penyaluran_id}/`), di luar document root. Tidak memakai `storage:link` |
+| Penyajian | `GET /penyaluran/foto/{id}` — tetap di belakang middleware `auth`, dan menolak foto milik kegiatan terhapus bagi non-admin |
+| Validasi | `image`, mimes `jpg,jpeg,png,webp`, maksimal 5 MB per berkas, maksimal 10 berkas per unggahan |
+| Pengecilan | GD bawaan PHP: lebar maksimal 1600 px, disimpan ulang sebagai JPEG mutu 82, orientasi EXIF diluruskan |
+| Penghapusan | Permanen beserta berkasnya, tercatat pada riwayat perubahan sebagai `foto_dihapus` |
+| Riwayat | Penambahan dan penghapusan foto tercatat di panel Riwayat Perubahan, memakai mekanisme yang sama dengan perubahan data |
+
+**Kenapa disk privat, bukan `public/storage`.** Foto memperlihatkan lokasi dan warga terdampak; menaruhnya di folder publik berarti siapa pun yang menebak URL dapat membukanya tanpa login, padahal seluruh data lain di sistem ini dijaga autentikasi. Route penyaji hanya beberapa baris, dan sebagai efek samping deployment menjadi lebih sederhana karena `php artisan storage:link` tidak diperlukan.
+
+**Kenapa dikecilkan saat diunggah.** Foto kamera ponsel berukuran 3–8 MB dan 3000–4000 piksel. Tanpa pengecilan, laporan berisi 20 foto menghasilkan PDF puluhan megabita yang lambat dibuka — sementara 1600 piksel sudah lebih dari cukup untuk dicetak dua kolom pada kertas A4. Bila GD tidak tersedia di server, foto tetap disimpan apa adanya: kehilangan dokumentasi lebih merugikan daripada berkas yang besar.
+
+**Lampiran pada laporan.** Halaman cetak menutup dokumen dengan bagian **"Lampiran Dokumentasi Kegiatan Penyaluran Air Bersih"** pada halaman terpisah. Foto tidak dicari berdasarkan tanggal, melainkan diambil dari kegiatan yang sudah tersaring `RekapPenyaluran::perTanggal()` — kumpulan yang sama persis dengan tabel "Upaya yang dilakukan" di atasnya — lalu dikelompokkan menurut tanggal kegiatannya, dengan baris lokasi dan dua foto per baris. Lampiran dapat dimatikan lewat satu centang di halaman laporan bila yang dibutuhkan hanya angkanya.
+
 ---
 
 ## 10. Keamanan (Kebutuhan Non-Fungsional PRD 11)
@@ -395,6 +447,7 @@ Diwujudkan sebagai tabel `riwayat_penyalurans` (Database Schema §3.9), bukan pa
 | Session | Regenerasi ID saat login, invalidasi saat logout |
 | Kredensial | Kredensial database dan `APP_KEY` hanya di `.env`, tidak ikut ke repositori |
 | Penghapusan data | `penyalurans` memakai *soft delete* — data yang dihapus admin masih bisa dipulihkan dari database bila terjadi kesalahan |
+| Unggahan berkas | Foto divalidasi jenis dan ukurannya, disimpan dengan nama acak di luar document root, lalu disandikan ulang oleh GD — berkas berisi skrip yang menyamar sebagai gambar tidak pernah berada di jalur yang dapat dieksekusi web server (§9.4) |
 
 ---
 
@@ -480,13 +533,14 @@ Target: laptop, desktop, dan tablet.
 | 7 | **Sebesar apa master data wilayah dapat diubah** | Kabupaten dan kecamatan **hanya dapat dilihat** — datanya berasal dari sumber resmi dan praktis tidak berubah; perubahan dilakukan lewat seeder. Desa/kelurahan **dapat ditambah dan diubah** admin, karena pemekaran wilayah dan perbaikan ejaan sesekali terjadi. |
 | 8 | **Penghapusan master data** | Tidak ada penghapusan untuk desa maupun instansi. Keduanya **dinonaktifkan**, sama seperti pola akun pengguna: hilang dari pilihan form penyaluran, tetapi riwayat penyaluran yang menyebutnya tetap utuh. Route `destroy` sengaja tidak didaftarkan. |
 | 9 | **Penambahan instansi pelaksana** | Admin **bebas menambah** instansi baru. Di lapangan pelaksananya memang bertambah sewaktu-waktu (Polsek, PDAM, relawan), dan menunggu pengembang akan menghambat pencatatan. |
-| 10 | **Bentuk laporan dan export** | **PDF** meniru dokumen infografis kantor (per tanggal → kabupaten → kecamatan → desa, dengan total harian dan Ringkasan Keseluruhan). **Excel** berbentuk tabel datar siap *pivot*. Tanpa kop surat resmi dan tanpa blok tanda tangan. |
+| 10 | **Bentuk laporan dan export** | **PDF** mengikuti dokumen "Laporan Sementara Kejadian dan Dampak Bencana" milik Pusdalops PB — lengkap dengan kop instansi, info kejadian, tabel kegiatan per tanggal, penutup, dan blok tanda tangan — dihasilkan lewat dialog cetak peramban, bukan pustaka PDF. **Excel** berbentuk CSV tabel datar siap *pivot*, satu baris per kegiatan. Rincian di §9.2. |
+| 11 | **Dokumentasi foto kegiatan** | Foto **selalu terhubung ke satu kegiatan penyaluran**, tidak pernah berdiri sendiri, dan tidak menyimpan tanggalnya sendiri. Diunggah dari halaman detail setelah kegiatan tersimpan — bukan dari form tambah kegiatan. Menambah dan menghapus khusus admin. Rincian di §9.4. |
 
 ### 12.2 Masih Terbuka
 
 | # | Isu | Asumsi sementara yang dipakai | Dampak bila berubah |
 |---|---|---|---|
-| 1 | **Kompatibilitas `maatwebsite/excel` dengan Laravel 13** — perlu diverifikasi saat instalasi. | Bila belum kompatibel, export memakai `openspout/openspout` langsung (menghasilkan `.xlsx` yang sama) atau CSV sebagai cadangan terakhir. | Kecil — hanya menyentuh kelas `PenyaluranExport`. |
+| 1 | **Bentuk berkas export Excel** — CSV sudah dibuka langsung oleh Excel, tetapi belum menyimpan format sel dan baris total. | Dipakai CSV bawaan PHP, tanpa pustaka pihak ketiga (§9.2). Bila kelak dibutuhkan `.xlsx` sungguhan, `openspout/openspout` dapat dipasang tanpa mengubah query mana pun. | Kecil — hanya menyentuh `LaporanController@excel`. |
 | 2 | **Duplikat penyaluran** — bolehkah satu desa menerima dua kegiatan pada tanggal yang sama. | Diperbolehkan; data nyata memang menunjukkannya. Sistem hanya menampilkan peringatan, tanpa batasan `UNIQUE` di database. | Sedang — bila harus dilarang, perlu menambah *unique constraint*. |
 | 3 | **Penerima yang bukan desa** — laporan 25 Agustus 2026 mencatat "SMAN 1 Suwawa Timur" sebagai penerima. | Dicatat pada kolom Keterangan, dengan desa tetap dipilih sebagai lokasi wilayahnya. | Kecil — bila perlu difilter, tambahkan kolom "titik penyaluran". |
 | 4 | **Data armada/kendaraan** — laporan asli memuat bagian "Armada tersedia" dan "Kendala yang dihadapi". | Di luar cakupan MVP sesuai PRD bagian 5. Tidak dicatat sistem. | Besar — perlu tabel dan menu baru. |
@@ -541,7 +595,10 @@ Langkah pokok:
 5. `npm ci && npm run build`, lalu unggah folder `public/build`.
 6. `php artisan config:cache route:cache view:cache`.
 7. Pastikan folder `storage/` dan `bootstrap/cache/` dapat ditulis oleh proses web server.
-8. Jadwalkan backup database harian (`mysqldump`) — ini satu-satunya salinan data penyaluran.
+8. Jadwalkan backup harian untuk **dua** hal sekaligus:
+   - database (`mysqldump`) — satu-satunya salinan data penyaluran;
+   - folder `storage/app/private/dokumentasi/` — berkas foto tidak berada di dalam database, sehingga backup database saja akan menghasilkan laporan dengan lampiran yang kosong (§9.4).
+9. Pastikan `upload_max_filesize` dan `post_max_size` pada `php.ini` server setidaknya 8 MB, agar unggahan beberapa foto sekaligus tidak ditolak sebelum sampai ke validasi Laravel.
 
 ---
 
@@ -554,5 +611,6 @@ Langkah pokok:
 | **3** | Modul penyaluran: CRUD, riwayat, pencarian, filter, pencatatan riwayat perubahan data (§9.3) | FR-08 – FR-18 |
 | **4** | Dashboard: kartu statistik dan grafik bulanan | FR-19 – FR-21 |
 | **5** | Laporan, export PDF, export Excel | FR-22 – FR-24 |
+| **6** | Dokumentasi foto kegiatan beserta lampirannya pada laporan (§9.4) | tambahan di luar daftar FR, atas permintaan pemilik proyek |
 
 Setiap fase diperiksa dan disetujui sebelum lanjut ke fase berikutnya.

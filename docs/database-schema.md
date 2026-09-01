@@ -4,7 +4,7 @@
 | | |
 |---|---|
 | **Instansi** | BPBD Provinsi Gorontalo |
-| **Versi dokumen** | 2.0 |
+| **Versi dokumen** | 2.1 |
 | **Acuan** | [`PRD.md`](PRD.md), [`technical-architecture.md`](technical-architecture.md), dokumen operasional di [`sumber/`](sumber/) |
 | **DBMS** | MySQL 8.4 — `utf8mb4` / `utf8mb4_unicode_ci` |
 | **Nama database** | `sicatat` |
@@ -15,12 +15,17 @@
 > *Laporan Sementara Distribusi Air Bersih 25 Agustus 2026*), model "satu data =
 > satu desa" pada PRD 8.5 ternyata tidak mampu menampung cara pencatatan yang
 > sebenarnya. Skema disesuaikan pada tiga titik — dijelaskan di [§10](#10-penyesuaian-terhadap-prd).
+>
+> **Perubahan pada versi 2.1.** Dua tabel pendamping menyusul setelah versi 2.0:
+> `riwayat_penyalurans` ([§3.9](#39-riwayat_penyalurans--riwayat-perubahan-data-penyaluran))
+> untuk jejak koreksi data historis, dan `foto_penyalurans`
+> ([§3.10](#310-foto_penyalurans--dokumentasi-foto-kegiatan)) untuk dokumentasi foto kegiatan.
 
 ---
 
 ## 1. Gambaran Umum
 
-Skema terdiri dari **8 tabel**: satu tabel transaksi (`penyalurans`), lima tabel master, dan dua tabel penghubung.
+Skema terdiri dari **10 tabel**: satu tabel transaksi (`penyalurans`), lima tabel master, dua tabel penghubung, dan dua tabel pendamping yang menggantung pada tabel transaksi (`riwayat_penyalurans` dan `foto_penyalurans`).
 
 ```
                        ┌──────────────┐
@@ -41,11 +46,17 @@ Skema terdiri dari **8 tabel**: satu tabel transaksi (`penyalurans`), lima tabel
                               │
    ┌──────────────┐    ┌──────▼───────┐    ┌──────────────┐
    │  instansis   │    │  penyalurans │───►│    users     │
-   └──────┬───────┘    └──────────────┘ N:1└──────────────┘
-          │ N : M         TABEL TRANSAKSI      penginput
-   ┌──────▼────────────────┐
-   │ instansi_penyaluran   │
-   └───────────────────────┘
+   └──────┬───────┘    └──┬────────┬──┘ N:1└──────────────┘
+          │ N : M         │        │  TABEL TRANSAKSI  penginput
+   ┌──────▼────────────┐  │ 1:N    │ 1:N
+   │ instansi_penyalu- │  │        │
+   │ ran               │  │        │
+   └───────────────────┘  │        │
+              ┌───────────▼──┐  ┌──▼───────────────┐
+              │ riwayat_pe-  │  │ foto_penyalurans │  dokumentasi kegiatan
+              │ nyalurans    │  └──────────────────┘
+              └──────────────┘
+               jejak koreksi
 ```
 
 Prinsip yang dipegang:
@@ -55,6 +66,7 @@ Prinsip yang dipegang:
 - **Volume air selalu dalam liter** (PRD 8.5: "Satuan: Liter"). Tidak ada kolom satuan, agar penjumlahan `SUM()` selalu valid.
 - **Angka boleh tidak lengkap.** Volume air wajib, tetapi jumlah KK dan jiwa boleh kosong karena laporan lapangan kerap tidak mencantumkannya.
 - **Tanggal kegiatan terpisah dari waktu input.** `tanggal_penyaluran` adalah tanggal kegiatan benar-benar terjadi, `created_at` adalah waktu data dimasukkan ke sistem. Keduanya tidak boleh disamakan — lihat §3.6.
+- **Foto dokumentasi menempel pada kegiatan, bukan pada tanggal.** `foto_penyalurans` sengaja tidak punya kolom tanggal; tanggal dokumentasi dibaca dari kegiatan induknya, sehingga foto tidak mungkin tercatat pada tanggal yang berbeda dari kegiatannya — lihat §3.10.
 
 ---
 
@@ -71,6 +83,8 @@ erDiagram
     USERS       ||--o{ PENYALURANS         : "menginput"
     PENYALURANS ||--o{ RIWAYAT_PENYALURANS : "dicatat perubahannya"
     USERS       ||--o{ RIWAYAT_PENYALURANS : "mengubah"
+    PENYALURANS ||--o{ FOTO_PENYALURANS    : "didokumentasikan"
+    USERS       ||--o{ FOTO_PENYALURANS    : "mengunggah"
 
     KABUPATENS {
         bigint   id PK
@@ -155,9 +169,17 @@ erDiagram
         bigint   id PK
         bigint   penyaluran_id FK
         bigint   user_id FK   "pelaku perubahan"
-        string   aksi         "dibuat | diubah | dihapus | dipulihkan"
+        string   aksi         "dibuat | diubah | dihapus | dipulihkan | foto_ditambah | foto_dihapus"
         json     perubahan    "nullable, nilai sebelum-sesudah"
         datetime created_at
+    }
+
+    FOTO_PENYALURANS {
+        bigint   id PK
+        bigint   penyaluran_id FK "pemilik foto"
+        bigint   user_id FK       "pengunggah"
+        string   path             "berkas pada disk privat"
+        datetime created_at       "waktu unggah, bukan tanggal kegiatan"
     }
 ```
 
@@ -353,7 +375,7 @@ Jejak audit untuk data penyaluran. Ada karena data historis boleh dikoreksi bela
 | `id` | `bigint unsigned` PK | ✗ | |
 | `penyaluran_id` | `bigint unsigned` FK | ✗ | → `penyalurans.id`, `ON DELETE CASCADE` |
 | `user_id` | `bigint unsigned` FK | ✗ | Pelaku perubahan. → `users.id`, `ON DELETE RESTRICT` |
-| `aksi` | `varchar(20)` | ✗ | `dibuat`, `diubah`, `dihapus`, atau `dipulihkan` |
+| `aksi` | `varchar(20)` | ✗ | `dibuat`, `diubah`, `dihapus`, `dipulihkan`, `foto_ditambah`, atau `foto_dihapus` |
 | `perubahan` | `json` | ✓ | Nilai sebelum-sesudah per kolom yang berubah |
 | `created_at` | `timestamp` | ✓ | Waktu perubahan |
 
@@ -366,6 +388,36 @@ Jejak audit untuk data penyaluran. Ada karena data historis boleh dikoreksi bela
 **Desa dan instansi dicatat sebagai nama, bukan id.** Dengan begitu riwayat lama tetap terbaca walaupun master datanya berubah nama di kemudian hari.
 
 **Tidak ada `updated_at`.** Baris riwayat tidak pernah diubah setelah tercatat.
+
+---
+
+### 3.10 `foto_penyalurans` — Dokumentasi Foto Kegiatan
+
+Foto dokumentasi kegiatan penyaluran, yang menjadi bahan bagian **Lampiran Dokumentasi** pada laporan cetak.
+
+| Kolom | Tipe | Null | Keterangan |
+|---|---|:---:|---|
+| `id` | `bigint unsigned` PK | ✗ | |
+| `penyaluran_id` | `bigint unsigned` FK | ✗ | Kegiatan pemilik foto. → `penyalurans.id`, `ON DELETE CASCADE` |
+| `user_id` | `bigint unsigned` FK | ✗ | Pengunggah. → `users.id`, `ON DELETE RESTRICT` |
+| `path` | `varchar(255)` | ✗ | Lokasi berkas pada disk `local`, mis. `dokumentasi/12/uEZfLU….jpg` |
+| `created_at` | `timestamp` | ✓ | Waktu unggah — **bukan** tanggal kegiatan |
+
+**Index:** gabungan (`penyaluran_id`, `id`).
+
+**Tidak ada kolom tanggal, dan itu disengaja.** Tanggal dokumentasi selalu dibaca dari `penyalurans.tanggal_penyaluran` lewat relasi. Konsekuensinya ada tiga, dan ketiganya memang yang dikehendaki:
+
+1. Admin tidak pernah diminta mengisi tanggal saat mengunggah foto — satu kolom lebih sedikit untuk salah diisi.
+2. Foto yang diunggah beberapa hari setelah kegiatan tetap terhitung sebagai dokumentasi tanggal kejadiannya, sejalan dengan aturan data susulan (§3.6).
+3. Bila tanggal kegiatan dikoreksi belakangan, seluruh fotonya ikut berpindah dengan sendirinya tanpa satu pun baris foto disentuh.
+
+**Satu kegiatan, banyak foto.** Relasinya `1 : N` dari `penyalurans`. Karena satu kegiatan dapat mencakup beberapa desa (§10 #1), foto tetap menempel pada **kegiatan**, bukan pada salah satu desanya — persis seperti angka KK, jiwa, dan volume air yang juga berlaku gabungan.
+
+**Berkasnya tidak disimpan di database.** Kolom `path` hanya menunjuk berkas di `storage/app/private/dokumentasi/{penyaluran_id}/`. Folder itu berada di luar jangkauan web server, sehingga foto hanya dapat dibuka lewat route `GET /penyaluran/foto/{foto}` yang tetap menjaga login. Foto dikecilkan ke lebar maksimal 1600 piksel saat diunggah, memakai GD bawaan PHP.
+
+**Penghapusan foto bersifat permanen**, berbeda dengan data penyalurannya yang memakai *soft delete*: baris dan berkasnya sama-sama dihapus. Yang tersisa adalah catatan `foto_dihapus` pada riwayat perubahan (§3.9), sehingga tetap diketahui siapa yang menghapus dan kapan. Sebaliknya, saat **kegiatannya** dihapus, foto tidak ikut hilang — `deleted_at` pada kegiatan membuat fotonya ikut tersembunyi dan muncul kembali ketika kegiatan dipulihkan.
+
+**Tidak ada kolom keterangan per foto.** Laporan menampilkan foto berkelompok di bawah tanggal dan lokasi kegiatannya, sehingga keterangan per gambar belum diperlukan. Bila suatu saat dibutuhkan, penambahannya berupa satu kolom `keterangan` yang boleh kosong — tidak mengubah relasi.
 
 ---
 
@@ -388,6 +440,7 @@ Di atas pengaman basis data itu, **aplikasi sama sekali tidak menyediakan pengha
 | `users` | tidak ada — set `aktif = false` | ditolak database |
 | `penyalurans` | boleh (soft delete, FR-10) | baris penghubungnya ikut terhapus |
 | `riwayat_penyalurans` | tidak ada — hanya bertambah | — |
+| `foto_penyalurans` | boleh (permanen, beserta berkasnya) | — |
 
 ---
 
@@ -410,6 +463,7 @@ Urutan migrasi mengikuti arah ketergantungan foreign key:
 | 11 | `2026_08_31_100001_rename_tanggal_on_penyalurans_table` | `tanggal` → `tanggal_penyaluran` (§3.6) |
 | 12 | `2026_08_31_100002_add_aktif_to_desas_table` | Tambah `aktif` pada desa (§3.4) |
 | 13 | `2026_08_31_100003_create_riwayat_penyalurans_table` | FK → `penyalurans`, `users` (§3.9) |
+| 14 | `2026_09_01_100001_create_foto_penyalurans_table` | FK → `penyalurans`, `users` (§3.10) |
 
 Contoh migrasi tabel inti:
 
@@ -445,8 +499,9 @@ Schema::create('penyalurans', function (Blueprint $table) {
 | `Desa` | `belongsTo(Kecamatan)`, `belongsToMany(Penyaluran)` | |
 | `Instansi` | `belongsToMany(Penyaluran)` | |
 | `User` | `hasMany(Penyaluran)` | Data yang diinput pengguna tersebut |
-| `Penyaluran` | `belongsToMany(Desa)`, `belongsToMany(Instansi)`, `belongsTo(User)`, `hasMany(RiwayatPenyaluran)` | |
+| `Penyaluran` | `belongsToMany(Desa)`, `belongsToMany(Instansi)`, `belongsTo(User)`, `hasMany(RiwayatPenyaluran)`, `hasMany(FotoPenyaluran)` | |
 | `RiwayatPenyaluran` | `belongsTo(Penyaluran)`, `belongsTo(User)` | Satu baris jejak audit (§3.9) |
+| `FotoPenyaluran` | `belongsTo(Penyaluran)`, `belongsTo(User)` | Satu foto dokumentasi (§3.10) |
 
 Untuk menghindari masalah query N+1 pada tabel riwayat, relasi dimuat sekaligus:
 
@@ -460,6 +515,12 @@ Model `Penyaluran` menyediakan beberapa pembantu:
 $penyaluran->angkaGabungan();  // true bila mencakup lebih dari satu desa
 $penyaluran->volumePerDesa();  // volume dibagi rata ke desa penerima
 $penyaluran->rekaman();        // isi data sebagai array, bahan riwayat perubahan
+```
+
+Model `FotoPenyaluran` menegaskan aturan §3.10 lewat satu pembantu, sehingga tidak ada satu pun tempat di aplikasi yang membaca tanggal foto dari kolomnya sendiri:
+
+```php
+$foto->tanggal();  // tanggal_penyaluran milik kegiatan induknya
 ```
 
 Seluruh filter halaman riwayat dikumpulkan pada satu *local scope* agar halaman laporan dan export nanti memakai penyaringan yang sama persis:
@@ -623,4 +684,6 @@ Tiga hal berikut berbeda dari PRD 8.5, berdasarkan telaah dokumen operasional as
 
 4. **Tidak ada tabel ringkasan atau cache.** Seluruh angka dashboard dan laporan dihitung langsung dari `penyalurans`. Dengan volume kegiatan BPBD (ratusan hingga ribuan baris per tahun), pendekatan ini cepat dan menjamin angka selalu mutakhir.
 
-5. **Fitur di luar MVP sudah punya tempat tumbuh.** Koordinat untuk GIS/peta dapat ditambahkan sebagai kolom `latitude`/`longitude` di `desas`; data kendaraan — yang pada laporan asli muncul sebagai "Armada tersedia" — sebagai tabel `kendaraans` dengan tabel penghubung ke `penyalurans`. Keduanya berupa penambahan, bukan perombakan.
+5. **Sejak ada dokumentasi foto, database bukan lagi satu-satunya yang perlu dicadangkan.** Baris `foto_penyalurans` hanya menyimpan jalur berkas; gambarnya sendiri berada di `storage/app/private/dokumentasi/`. Backup `mysqldump` saja akan menghasilkan laporan dengan lampiran yang kosong. Kedua-duanya harus ikut dalam jadwal pencadangan (Technical Architecture §14).
+
+6. **Fitur di luar MVP sudah punya tempat tumbuh.** Koordinat untuk GIS/peta dapat ditambahkan sebagai kolom `latitude`/`longitude` di `desas`; data kendaraan — yang pada laporan asli muncul sebagai "Armada tersedia" — sebagai tabel `kendaraans` dengan tabel penghubung ke `penyalurans`. Keduanya berupa penambahan, bukan perombakan.
