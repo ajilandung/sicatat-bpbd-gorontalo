@@ -55,16 +55,27 @@ Route::middleware(['auth', 'aktif'])->group(function () {
             // seluruh role yang login, sama seperti halaman detailnya.
             Route::get('foto/{foto}', [FotoPenyaluranController::class, 'tampil'])->name('foto.tampil');
 
-            Route::middleware('role:admin')->group(function () {
-                Route::post('{penyaluran}/foto', [FotoPenyaluranController::class, 'store'])->name('foto.store');
-                Route::delete('foto/{foto}', [FotoPenyaluranController::class, 'destroy'])->name('foto.destroy');
-
-                Route::get('terhapus', [PenyaluranController::class, 'terhapus'])->name('terhapus');
+            // Menginput dan mengoreksi kegiatan terbuka untuk admin dan petugas.
+            // Middleware hanya menyaring role; batas kepemilikannya — petugas
+            // hanya boleh mengoreksi kegiatan yang ia input sendiri — ditegakkan
+            // `PenyaluranPolicy` di controller dan FormRequest, sehingga
+            // mengetik URL milik orang lain tetap ditolak.
+            Route::middleware('role:admin,petugas')->group(function () {
                 Route::get('create', [PenyaluranController::class, 'create'])->name('create');
                 Route::post('/', [PenyaluranController::class, 'store'])->name('store');
 
                 Route::get('{penyaluran}/edit', [PenyaluranController::class, 'edit'])->name('edit');
                 Route::put('{penyaluran}', [PenyaluranController::class, 'update'])->name('update');
+
+                Route::post('{penyaluran}/foto', [FotoPenyaluranController::class, 'store'])->name('foto.store');
+                Route::delete('foto/{foto}', [FotoPenyaluranController::class, 'destroy'])->name('foto.destroy');
+            });
+
+            // Menghapus dan memulihkan tetap khusus admin, termasuk untuk data
+            // yang diinput petugas.
+            Route::middleware('role:admin')->group(function () {
+                Route::get('terhapus', [PenyaluranController::class, 'terhapus'])->name('terhapus');
+
                 Route::delete('{penyaluran}', [PenyaluranController::class, 'destroy'])->name('destroy');
                 Route::patch('{penyaluran}/pulihkan', [PenyaluranController::class, 'pulihkan'])->name('pulihkan');
             });

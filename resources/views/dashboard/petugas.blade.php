@@ -12,6 +12,11 @@
                 <x-ikon nama="list" class="size-4"/>
                 Riwayat Penyaluran
             </x-ui.tombol>
+
+            <x-ui.tombol :href="route('penyaluran.create')">
+                <x-ikon nama="plus" class="size-4"/>
+                Input Penyaluran
+            </x-ui.tombol>
         </x-slot:aksi>
     </x-ui.kepala-halaman>
 

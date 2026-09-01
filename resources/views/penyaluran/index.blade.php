@@ -13,12 +13,14 @@
                     <x-ikon nama="sampah" class="size-4"/>
                     Data Terhapus
                 </x-ui.tombol>
+            @endif
 
+            @can('create', App\Models\Penyaluran::class)
                 <x-ui.tombol :href="route('penyaluran.create')">
                     <x-ikon nama="plus" class="size-4"/>
                     Input Penyaluran
                 </x-ui.tombol>
-            @endif
+            @endcan
         </x-slot:aksi>
     </x-ui.kepala-halaman>
 
@@ -145,10 +147,12 @@
                                     <x-ui.tombol-ikon :href="route('penyaluran.show', $penyaluran)"
                                                       ikon="mata" label="Lihat detail penyaluran"/>
 
-                                    @if (auth()->user()->isAdmin())
+                                    @can('update', $penyaluran)
                                         <x-ui.tombol-ikon :href="route('penyaluran.edit', $penyaluran)"
                                                           ikon="pensil" label="Ubah data penyaluran"/>
+                                    @endcan
 
+                                    @can('delete', $penyaluran)
                                         <x-ui.konfirmasi
                                             :aksi="route('penyaluran.destroy', $penyaluran)"
                                             metode="DELETE"
@@ -159,7 +163,7 @@
                                             pesan="Data dipindahkan ke Data Terhapus dan tidak lagi ikut dihitung pada rekap maupun laporan. Bila ternyata keliru, data masih dapat dipulihkan dari sana."
                                             label-konfirmasi="Ya, hapus"
                                             varian-konfirmasi="bahaya"/>
-                                    @endif
+                                    @endcan
                                 </div>
                             </td>
                         </tr>
@@ -173,9 +177,9 @@
                                         : 'Kegiatan penyaluran yang sudah dicatat akan muncul di sini.'">
                                     @if ($adaFilter)
                                         <x-ui.tombol varian="sekunder" :href="route('penyaluran.index')">Hapus filter</x-ui.tombol>
-                                    @elseif (auth()->user()->isAdmin())
+                                    @elsecan('create', App\Models\Penyaluran::class)
                                         <x-ui.tombol :href="route('penyaluran.create')">Input Penyaluran</x-ui.tombol>
-                                    @endif
+                                    @endcan
                                 </x-ui.kosong>
                             </td>
                         </tr>
@@ -227,11 +231,13 @@
                         Lihat detail
                     </x-ui.tombol>
 
-                    @if (auth()->user()->isAdmin())
+                    @can('update', $penyaluran)
                         <x-ui.tombol varian="sekunder" ukuran="kecil" :href="route('penyaluran.edit', $penyaluran)">
                             Ubah
                         </x-ui.tombol>
+                    @endcan
 
+                    @can('delete', $penyaluran)
                         <x-ui.konfirmasi
                             :aksi="route('penyaluran.destroy', $penyaluran)"
                             metode="DELETE"
@@ -241,7 +247,7 @@
                             pesan="Data dipindahkan ke Data Terhapus dan tidak lagi ikut dihitung pada rekap maupun laporan. Bila ternyata keliru, data masih dapat dipulihkan dari sana."
                             label-konfirmasi="Ya, hapus"
                             varian-konfirmasi="bahaya"/>
-                    @endif
+                    @endcan
                 </div>
             </div>
         @empty

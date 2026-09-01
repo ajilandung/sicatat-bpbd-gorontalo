@@ -147,7 +147,12 @@ class DokumentasiPenyaluranTest extends TestCase
             ->assertOk();
     }
 
-    public function test_selain_admin_tidak_dapat_menambah_atau_menghapus_foto(): void
+    /**
+     * Kegiatan pada pengujian ini diinput admin, sehingga petugas mana pun
+     * bukan pemiliknya. Petugas yang menginput sendiri kegiatannya diuji pada
+     * HakAksesPetugasTest.
+     */
+    public function test_bukan_pemilik_dan_bukan_admin_tidak_dapat_menambah_atau_menghapus_foto(): void
     {
         $penyaluran = $this->penyaluran();
 

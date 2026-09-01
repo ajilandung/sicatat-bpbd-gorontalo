@@ -22,8 +22,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * kegiatan induknya, sehingga laporan per periode cukup mengambil foto dari
  * kegiatan yang sudah tersaring.
  *
- * Menambah dan menghapus foto hanya untuk admin, mengikuti aturan yang sama
- * dengan data penyaluran; melihat foto terbuka untuk seluruh role yang login.
+ * Menambah dan menghapus foto mengikuti aturan yang sama dengan mengoreksi
+ * datanya (`PenyaluranPolicy::kelolaFoto`): admin atas seluruh kegiatan,
+ * petugas atas kegiatan yang ia input sendiri. Melihat foto terbuka untuk
+ * seluruh role yang login.
  */
 class FotoPenyaluranController extends Controller
 {
@@ -41,6 +43,9 @@ class FotoPenyaluranController extends Controller
     public function store(Request $request, Penyaluran $penyaluran): RedirectResponse
     {
         abort_if($penyaluran->trashed(), 404);
+
+        // Petugas hanya boleh menambah foto pada kegiatan yang ia input sendiri.
+        $this->authorize('kelolaFoto', $penyaluran);
 
         $request->validate([
             'foto' => ['required', 'array', 'max:10'],
@@ -80,6 +85,8 @@ class FotoPenyaluranController extends Controller
     public function destroy(Request $request, FotoPenyaluran $foto): RedirectResponse
     {
         $penyaluran = $foto->penyaluran;
+
+        $this->authorize('kelolaFoto', $penyaluran);
 
         DB::transaction(function () use ($foto, $penyaluran, $request) {
             $sebelum = $penyaluran->fotos()->count();

@@ -70,13 +70,16 @@ class PenyaluranTest extends TestCase
         }
     }
 
-    public function test_selain_admin_tidak_dapat_membuka_form_input(): void
+    /**
+     * Petugas ikut menginput sejak hak aksesnya diperluas; yang tersisa hanya
+     * membaca adalah pimpinan. Aturan kepemilikannya diuji tersendiri pada
+     * HakAksesPetugasTest.
+     */
+    public function test_pimpinan_tidak_dapat_membuka_form_input(): void
     {
-        foreach ([User::factory()->petugas(), User::factory()->pimpinan()] as $pabrik) {
-            $this->actingAs($pabrik->create())
-                ->get('/penyaluran/create')
-                ->assertForbidden();
-        }
+        $this->actingAs(User::factory()->pimpinan()->create())
+            ->get('/penyaluran/create')
+            ->assertForbidden();
     }
 
     public function test_admin_dapat_membuka_form_input(): void
@@ -91,7 +94,7 @@ class PenyaluranTest extends TestCase
             ->assertSee('Kabupaten Bone Bolango');
     }
 
-    public function test_selain_admin_tidak_dapat_menyimpan_penyaluran(): void
+    public function test_pimpinan_tidak_dapat_menyimpan_penyaluran(): void
     {
         $this->actingAs(User::factory()->pimpinan()->create())
             ->post('/penyaluran', $this->isianValid(['volume_liter' => 9999]))

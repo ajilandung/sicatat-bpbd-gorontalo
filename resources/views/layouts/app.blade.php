@@ -25,7 +25,7 @@
         [
             'judul' => 'Penyaluran',
             'item' => [
-                ['label' => 'Input Penyaluran', 'route' => 'penyaluran.create', 'aktifJika' => 'penyaluran.create', 'ikon' => 'plus', 'siap' => true, 'admin' => true],
+                ['label' => 'Input Penyaluran', 'route' => 'penyaluran.create', 'aktifJika' => 'penyaluran.create', 'ikon' => 'plus', 'siap' => true, 'kecualiPimpinan' => true],
                 ['label' => 'Riwayat Penyaluran', 'route' => 'penyaluran.index', 'aktifJika' => 'penyaluran.index', 'ikon' => 'list', 'siap' => true],
             ],
         ],
@@ -109,6 +109,7 @@
                         @foreach ($grup['item'] as $item)
                             @continue(($item['admin'] ?? false) && ! $user->isAdmin())
                             @continue(($item['kecualiPetugas'] ?? false) && $user->isPetugas())
+                            @continue(($item['kecualiPimpinan'] ?? false) && $user->isPimpinan())
 
                             <li>
                                 @if ($item['siap'])

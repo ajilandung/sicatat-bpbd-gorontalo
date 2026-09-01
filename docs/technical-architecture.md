@@ -9,9 +9,10 @@
 | **Tahap** | Tahap 2 dari PRD bagian 14 |
 
 > **Perubahan pada versi 1.1.** Dokumen disesuaikan dengan sistem yang benar-benar
-> terbangun sampai Fase 6: bentuk export PDF dan Excel yang ternyata tidak memakai
+> terbangun sampai Fase 7: bentuk export PDF dan Excel yang ternyata tidak memakai
 > pustaka pihak ketiga ([§9.2](#92-laporan--export-prd-88-89)), dokumentasi foto kegiatan
-> ([§9.4](#94-dokumentasi-foto-kegiatan)), serta pembetulan peta route dan matriks hak akses.
+> ([§9.4](#94-dokumentasi-foto-kegiatan)), perluasan hak akses Petugas beserta aturan
+> kepemilikan data ([§5.3](#53-matriks-hak-akses)), serta pembetulan peta route.
 
 ---
 
@@ -103,7 +104,9 @@ D:\Sites\Sicatat\
 │   │   │   ├── PastikanAkunAktif.php           ← alias `aktif`
 │   │   │   └── PastikanPasswordSudahDiganti.php ← alias `ganti-password`
 │   │   └── Requests/                          ← validasi tiap form
-│   ├── Policies/UserPolicy.php                ← aturan yang bergantung objek
+│   ├── Policies/
+│   │   ├── UserPolicy.php                     ← aturan yang bergantung objek
+│   │   └── PenyaluranPolicy.php               ← kepemilikan data penyaluran (§5.3)
 │   ├── Models/
 │   │   ├── User.php
 │   │   ├── Kabupaten.php
@@ -204,11 +207,18 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/laporan/excel', [LaporanController::class, 'excel']);
     });
 
-    // Hanya admin
-    Route::middleware('role:admin')->group(function () {
-        Route::resource('penyaluran', PenyaluranController::class)->except(['index', 'show']);
+    // Admin dan petugas — batas kepemilikannya ditegakkan PenyaluranPolicy
+    Route::middleware('role:admin,petugas')->group(function () {
+        Route::resource('penyaluran', PenyaluranController::class)
+            ->except(['index', 'show', 'destroy']);
         Route::post('/penyaluran/{penyaluran}/foto', [FotoPenyaluranController::class, 'store']);
         Route::delete('/penyaluran/foto/{foto}', [FotoPenyaluranController::class, 'destroy']);
+    });
+
+    // Hanya admin
+    Route::middleware('role:admin')->group(function () {
+        Route::delete('/penyaluran/{penyaluran}', [PenyaluranController::class, 'destroy']);
+        Route::patch('/penyaluran/{penyaluran}/pulihkan', [PenyaluranController::class, 'pulihkan']);
         Route::resource('wilayah/kabupaten', KabupatenController::class);
         Route::resource('wilayah/kecamatan', KecamatanController::class);
         Route::resource('wilayah/desa', DesaController::class);
@@ -229,10 +239,12 @@ Diturunkan dari PRD bagian 9.
 | Ubah password sendiri | ✅ | ✅ | ✅ |
 | Riwayat penyaluran (lihat & filter) | ✅ | ✅ | ✅ |
 | Detail penyaluran | ✅ | ✅ | ✅ |
-| Tambah / ubah / hapus penyaluran | ✅ | ❌ | ❌ |
+| Tambah penyaluran | ✅ | ❌ | ✅ |
+| Ubah penyaluran | ✅ semua data | ❌ | ✅ hanya data sendiri |
+| Hapus & pulihkan penyaluran | ✅ | ❌ | ❌ |
 | Lihat foto dokumentasi kegiatan | ✅ | ✅ | ✅ |
-| Tambah / hapus foto dokumentasi | ✅ | ❌ | ❌ |
-| Riwayat perubahan pada halaman detail | ✅ | ❌ | ❌ |
+| Tambah / hapus foto dokumentasi | ✅ semua data | ❌ | ✅ hanya data sendiri |
+| Riwayat perubahan pada halaman detail | ✅ semua data | ❌ | ✅ hanya data sendiri |
 | Laporan + export PDF & Excel | ✅ | ✅ | ❌ |
 | Data wilayah (CRUD) | ✅ | ❌ | ❌ |
 | Data instansi (CRUD) | ✅ | ❌ | ❌ |
@@ -242,7 +254,19 @@ Diturunkan dari PRD bagian 9.
 
 Menu di sidebar disembunyikan bila role tidak berhak, **dan** tetap dijaga di sisi route/middleware — menyembunyikan tautan saja bukan pengamanan.
 
-Sesuai PRD bagian 9, role **Petugas** pada MVP berperan sebagai sumber data lapangan: belum punya kemampuan input, dan halaman laporan disediakan untuk Admin dan Pimpinan saja. Yang dapat dibukanya adalah dashboard, riwayat penyaluran, serta detail kegiatan beserta foto dokumentasinya. Kolom `role` sudah menyediakan tempatnya, sehingga menambah hak input di tahap berikutnya cukup mengubah middleware, bukan mengubah struktur data.
+Sesuai PRD bagian 9, role **Petugas** menginput data penyalurannya sendiri dari lapangan. Halaman laporan, master data, dan manajemen pengguna tetap tertutup baginya.
+
+Sejak petugas dapat menginput, hak akses data penyaluran tidak lagi cukup ditentukan role saja — ia bergantung pada **siapa pemilik barisnya** (`penyalurans.user_id`). Aturan itu dikumpulkan di `App\Policies\PenyaluranPolicy`:
+
+| Kemampuan | Aturan |
+|---|---|
+| `create` | admin atau petugas |
+| `update` | admin, atau petugas yang menginput baris tersebut; data terhapus ditolak bagi siapa pun |
+| `delete`, `pulihkan` | admin |
+| `kelolaFoto` | sama dengan `update` — pemegang kegiatan adalah pemegang fotonya |
+| `lihatRiwayat` | sama dengan `update`, tetapi tetap terbuka pada data terhapus: di sanalah tercatat siapa yang menghapusnya |
+
+Policy yang sama dipakai oleh route, controller, FormRequest, dan tampilan, sehingga tombol yang disembunyikan dan jalur POST/PUT yang dijaga tidak mungkin berbeda pendapat. Middleware `role:` hanya menyaring role secara kasar; batas kepemilikannya ditegakkan `authorize()` di controller dan `authorize()` pada `PerbaruiPenyaluranRequest` — mengetik URL milik pengguna lain, atau mengirim PUT tanpa membuka form, tetap berakhir 403.
 
 Setiap role punya halaman dashboard sendiri (`/dashboard/admin`, `/dashboard/petugas`, `/dashboard/pimpinan`) yang masing-masing dijaga middleware `role:`. URL `/dashboard` hanya pintu masuk yang mengalihkan pengguna ke dashboard miliknya.
 
@@ -265,17 +289,17 @@ Dua aturan otorisasi bergantung pada objek, bukan sekadar role, sehingga ditanga
 | GET | `/ubah-password` | `Auth\PasswordController@edit` | auth | FR-01 |
 | PUT | `/ubah-password` | `Auth\PasswordController@update` | auth | FR-01 |
 | GET | `/penyaluran` | `PenyaluranController@index` | semua | FR-15, 16, 17, 18 |
-| GET | `/penyaluran/create` | `PenyaluranController@create` | admin | FR-08 |
-| POST | `/penyaluran` | `PenyaluranController@store` | admin | FR-08, 11–14 |
+| GET | `/penyaluran/create` | `PenyaluranController@create` | admin, petugas | FR-08 |
+| POST | `/penyaluran` | `PenyaluranController@store` — `user_id` diisi dari akun yang login | admin, petugas | FR-08, 11–14 |
 | GET | `/penyaluran/terhapus` | `PenyaluranController@terhapus` — data yang sudah dihapus | admin | FR-10 |
 | GET | `/penyaluran/{id}` | `PenyaluranController@show` — `withTrashed`, data terhapus hanya untuk admin | semua | FR-15 |
-| GET | `/penyaluran/{id}/edit` | `PenyaluranController@edit` | admin | FR-09 |
-| PUT | `/penyaluran/{id}` | `PenyaluranController@update` | admin | FR-09 |
+| GET | `/penyaluran/{id}/edit` | `PenyaluranController@edit` — policy `update` | admin, petugas pemilik | FR-09 |
+| PUT | `/penyaluran/{id}` | `PenyaluranController@update` — policy `update` | admin, petugas pemilik | FR-09 |
 | DELETE | `/penyaluran/{id}` | `PenyaluranController@destroy` — *soft delete* | admin | FR-10 |
 | PATCH | `/penyaluran/{id}/pulihkan` | `PenyaluranController@pulihkan` | admin | FR-10 |
 | GET | `/penyaluran/foto/{id}` | `FotoPenyaluranController@tampil` — menyajikan berkas dari disk privat | semua | — |
-| POST | `/penyaluran/{id}/foto` | `FotoPenyaluranController@store` — beberapa foto sekaligus | admin | — |
-| DELETE | `/penyaluran/foto/{id}` | `FotoPenyaluranController@destroy` — permanen, beserta berkasnya | admin | — |
+| POST | `/penyaluran/{id}/foto` | `FotoPenyaluranController@store` — policy `kelolaFoto` | admin, petugas pemilik | — |
+| DELETE | `/penyaluran/foto/{id}` | `FotoPenyaluranController@destroy` — policy `kelolaFoto` | admin, petugas pemilik | — |
 | GET | `/laporan` | `LaporanController@index` | admin, pimpinan | FR-22 |
 | GET | `/laporan/cetak` | `LaporanController@cetak` — halaman siap cetak / Simpan sebagai PDF | admin, pimpinan | FR-23 |
 | GET | `/laporan/excel` | `LaporanController@excel` — unduhan CSV | admin, pimpinan | FR-24 |
@@ -401,7 +425,7 @@ Aturan bisnis BPBD: **data lapangan tidak selalu sampai ke admin pada hari kegia
 
 **Riwayat perubahan.** Karena data historis boleh dikoreksi belakangan, setiap perubahan pada data penyaluran dicatat: siapa yang mengubah, kapan, dan nilai sebelum/sesudahnya. Ini melengkapi `user_id` yang hanya menyimpan penginput.
 
-Diwujudkan sebagai tabel `riwayat_penyalurans` (Database Schema §3.9), bukan paket pihak ketiga, agar label aksinya berbahasa Indonesia dan bentuk datanya sepenuhnya terkendali. Empat aksi dicatat: `dibuat`, `diubah`, `dihapus`, dan `dipulihkan`. Hanya kolom yang benar-benar berubah yang disimpan, sehingga menyimpan tanpa mengubah apa pun tidak menambah baris riwayat. Panelnya tampil di halaman detail penyaluran dan **hanya terlihat oleh admin** — yang membacanya adalah pihak yang juga berwenang mengoreksi datanya.
+Diwujudkan sebagai tabel `riwayat_penyalurans` (Database Schema §3.9), bukan paket pihak ketiga, agar label aksinya berbahasa Indonesia dan bentuk datanya sepenuhnya terkendali. Empat aksi dicatat: `dibuat`, `diubah`, `dihapus`, dan `dipulihkan`. Hanya kolom yang benar-benar berubah yang disimpan, sehingga menyimpan tanpa mengubah apa pun tidak menambah baris riwayat. Panelnya tampil di halaman detail penyaluran dan **hanya terlihat oleh pihak yang juga berwenang mengoreksi datanya**: admin atas seluruh kegiatan, petugas atas kegiatan yang ia input sendiri (§5.3).
 
 **Penghapusan yang dapat dibatalkan.** `destroy` hanya menandai `deleted_at`, dan halaman **Data Terhapus** (`/penyaluran/terhapus`, khusus admin) menyediakan tombol Pulihkan. Tanpa halaman itu, janji "kesalahan hapus masih bisa dipulihkan" hanya berlaku bagi yang punya akses basis data.
 
@@ -417,7 +441,7 @@ Foto dokumentasi **selalu menempel pada satu kegiatan penyaluran** dan tidak per
 
 | Aspek | Ketentuan |
 |---|---|
-| Hak akses | Menambah dan menghapus: admin. Melihat: seluruh role yang login — sama dengan halaman detailnya |
+| Hak akses | Menambah dan menghapus: admin atas seluruh kegiatan, petugas atas kegiatan yang ia input sendiri (`PenyaluranPolicy::kelolaFoto`). Melihat: seluruh role yang login — sama dengan halaman detailnya |
 | Penyimpanan | Disk `local` (`storage/app/private/dokumentasi/{penyaluran_id}/`), di luar document root. Tidak memakai `storage:link` |
 | Penyajian | `GET /penyaluran/foto/{id}` — tetap di belakang middleware `auth`, dan menolak foto milik kegiatan terhapus bagi non-admin |
 | Validasi | `image`, mimes `jpg,jpeg,png,webp`, maksimal 5 MB per berkas, maksimal 10 berkas per unggahan |
@@ -534,7 +558,8 @@ Target: laptop, desktop, dan tablet.
 | 8 | **Penghapusan master data** | Tidak ada penghapusan untuk desa maupun instansi. Keduanya **dinonaktifkan**, sama seperti pola akun pengguna: hilang dari pilihan form penyaluran, tetapi riwayat penyaluran yang menyebutnya tetap utuh. Route `destroy` sengaja tidak didaftarkan. |
 | 9 | **Penambahan instansi pelaksana** | Admin **bebas menambah** instansi baru. Di lapangan pelaksananya memang bertambah sewaktu-waktu (Polsek, PDAM, relawan), dan menunggu pengembang akan menghambat pencatatan. |
 | 10 | **Bentuk laporan dan export** | **PDF** mengikuti dokumen "Laporan Sementara Kejadian dan Dampak Bencana" milik Pusdalops PB — lengkap dengan kop instansi, info kejadian, tabel kegiatan per tanggal, penutup, dan blok tanda tangan — dihasilkan lewat dialog cetak peramban, bukan pustaka PDF. **Excel** berbentuk CSV tabel datar siap *pivot*, satu baris per kegiatan. Rincian di §9.2. |
-| 11 | **Dokumentasi foto kegiatan** | Foto **selalu terhubung ke satu kegiatan penyaluran**, tidak pernah berdiri sendiri, dan tidak menyimpan tanggalnya sendiri. Diunggah dari halaman detail setelah kegiatan tersimpan — bukan dari form tambah kegiatan. Menambah dan menghapus khusus admin. Rincian di §9.4. |
+| 11 | **Dokumentasi foto kegiatan** | Foto **selalu terhubung ke satu kegiatan penyaluran**, tidak pernah berdiri sendiri, dan tidak menyimpan tanggalnya sendiri. Diunggah dari halaman detail setelah kegiatan tersimpan — bukan dari form tambah kegiatan. Rincian di §9.4. |
+| 12 | **Petugas menginput sendiri dari lapangan** | Role Petugas diberi kemampuan menambah kegiatan dan mengoreksi kegiatan **yang ia input sendiri**, memakai form penyaluran yang sudah ada. Menghapus, laporan, master data, dan manajemen pengguna tetap tertutup baginya. Batas kepemilikan ditegakkan `PenyaluranPolicy` di sisi server, bukan dengan menyembunyikan tombol. Rincian di §5.3. |
 
 ### 12.2 Masih Terbuka
 
@@ -612,5 +637,6 @@ Langkah pokok:
 | **4** | Dashboard: kartu statistik dan grafik bulanan | FR-19 – FR-21 |
 | **5** | Laporan, export PDF, export Excel | FR-22 – FR-24 |
 | **6** | Dokumentasi foto kegiatan beserta lampirannya pada laporan (§9.4) | tambahan di luar daftar FR, atas permintaan pemilik proyek |
+| **7** | Perluasan hak akses Petugas: input mandiri dan koreksi data sendiri lewat `PenyaluranPolicy` (§5.3) | FR-02, FR-08, FR-09 |
 
 Setiap fase diperiksa dan disetujui sebelum lanjut ke fase berikutnya.

@@ -2,20 +2,22 @@
 
 namespace App\Http\Requests\Penyaluran;
 
+use App\Models\Penyaluran;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
  * Validasi form input kegiatan penyaluran (FR-08, FR-11 sampai FR-14).
  *
- * Route sudah dijaga middleware `role:admin`; pemeriksaan di sini adalah
- * lapis kedua, sama seperti pola pada Master Data dan Manajemen Pengguna.
+ * Route sudah dijaga middleware `role:admin,petugas`; pemeriksaan di sini
+ * adalah lapis kedua yang menutup jalur POST langsung, sama seperti pola pada
+ * Master Data dan Manajemen Pengguna.
  */
 class SimpanPenyaluranRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        return $this->user()?->can('create', Penyaluran::class) ?? false;
     }
 
     /**

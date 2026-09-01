@@ -105,8 +105,9 @@
                 @endforeach
             </dl>
 
-            @if (auth()->user()->isAdmin() && ! $penyaluran->trashed())
+            @if (! $penyaluran->trashed() && (auth()->user()->can('update', $penyaluran) || auth()->user()->can('delete', $penyaluran)))
                 <x-slot:kaki>
+                    @can('delete', $penyaluran)
                     <x-ui.konfirmasi
                         :aksi="route('penyaluran.destroy', $penyaluran)"
                         metode="DELETE"
@@ -116,11 +117,14 @@
                         pesan="Data dipindahkan ke Data Terhapus dan tidak lagi ikut dihitung pada rekap maupun laporan. Bila ternyata keliru, data masih dapat dipulihkan dari sana."
                         label-konfirmasi="Ya, hapus"
                         varian-konfirmasi="bahaya"/>
+                    @endcan
 
-                    <x-ui.tombol :href="route('penyaluran.edit', $penyaluran)">
-                        <x-ikon nama="pensil" class="size-4"/>
-                        Ubah Data
-                    </x-ui.tombol>
+                    @can('update', $penyaluran)
+                        <x-ui.tombol :href="route('penyaluran.edit', $penyaluran)">
+                            <x-ikon nama="pensil" class="size-4"/>
+                            Ubah Data
+                        </x-ui.tombol>
+                    @endcan
                 </x-slot:kaki>
             @endif
         </x-ui.kartu>
@@ -134,7 +138,7 @@
             judul="Dokumentasi Kegiatan"
             :deskripsi="'Foto kegiatan tanggal '.$penyaluran->tanggal_penyaluran?->translatedFormat('d F Y').'. Foto boleh ditambahkan kapan saja setelah kegiatan tercatat, dan ikut tercetak pada lampiran laporan periode yang memuat tanggal ini.'">
 
-            @if (auth()->user()->isAdmin() && ! $penyaluran->trashed())
+            @can('kelolaFoto', $penyaluran)
                 <x-slot:aksi>
                     <form method="POST" action="{{ route('penyaluran.foto.store', $penyaluran) }}"
                           enctype="multipart/form-data">
@@ -155,7 +159,7 @@
                         </label>
                     </form>
                 </x-slot:aksi>
-            @endif
+            @endcan
 
             <x-ui.ringkasan-galat class="mb-5"/>
 
@@ -175,7 +179,7 @@
                                      class="aspect-[4/3] w-full bg-slate-100 object-cover">
                             </a>
 
-                            @if (auth()->user()->isAdmin() && ! $penyaluran->trashed())
+                            @can('kelolaFoto', $penyaluran)
                                 <div class="absolute right-1.5 top-1.5">
                                     <x-ui.konfirmasi
                                         :aksi="route('penyaluran.foto.destroy', $foto)"
@@ -188,16 +192,17 @@
                                         label-konfirmasi="Ya, hapus foto"
                                         varian-konfirmasi="bahaya"/>
                                 </div>
-                            @endif
+                            @endcan
                         </li>
                     @endforeach
                 </ul>
             @endif
         </x-ui.kartu>
 
-        {{-- Riwayat perubahan (§9.3) — khusus admin, karena yang membacanya
-             adalah pihak yang juga berwenang mengoreksi datanya. --}}
-        @if (auth()->user()->isAdmin())
+        {{-- Riwayat perubahan (§9.3) — hanya untuk pihak yang juga berwenang
+             mengoreksi datanya: admin atas seluruh kegiatan, petugas atas
+             kegiatan yang ia input sendiri. --}}
+        @can('lihatRiwayat', $penyaluran)
             <x-ui.kartu judul="Riwayat Perubahan"
                         deskripsi="Data penyaluran boleh dikoreksi kapan saja karena laporan lapangan kerap baru lengkap beberapa hari kemudian. Setiap koreksi tercatat di sini beserta nilai sebelum dan sesudahnya.">
                 @forelse ($riwayats as $riwayat)
@@ -248,7 +253,7 @@
                                  deskripsi="Setiap perubahan pada data ini akan tercatat di sini."/>
                 @endforelse
             </x-ui.kartu>
-        @endif
+        @endcan
     </div>
 
 @endsection

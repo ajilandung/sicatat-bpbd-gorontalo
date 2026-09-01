@@ -54,6 +54,8 @@ class PenyaluranController extends Controller
 
     public function create(): View
     {
+        $this->authorize('create', Penyaluran::class);
+
         return view('penyaluran.create', [
             'opsiKabupaten' => Kabupaten::opsi(),
             'daftarInstansi' => $this->instansiUntukForm(),
@@ -100,9 +102,10 @@ class PenyaluranController extends Controller
 
         $penyaluran->load(['desas.kecamatan.kabupaten', 'instansis', 'user', 'fotos']);
 
-        // Riwayat perubahan hanya untuk admin: yang membacanya adalah pihak
-        // yang juga berwenang mengoreksi datanya.
-        $riwayats = $request->user()->isAdmin()
+        // Riwayat perubahan hanya untuk pihak yang juga berwenang mengoreksi
+        // datanya: admin atas seluruh kegiatan, petugas atas kegiatan yang ia
+        // input sendiri.
+        $riwayats = $request->user()->can('lihatRiwayat', $penyaluran)
             ? $penyaluran->riwayats()->with('user')->get()
             : collect();
 
@@ -114,6 +117,11 @@ class PenyaluranController extends Controller
 
     public function edit(Penyaluran $penyaluran): View
     {
+        // Petugas hanya boleh mengoreksi kegiatan yang ia input sendiri.
+        // Diperiksa di sini, bukan sekadar disembunyikan tombolnya, supaya
+        // mengetik URL milik orang lain tetap ditolak.
+        $this->authorize('update', $penyaluran);
+
         $penyaluran->load(['desas.kecamatan.kabupaten', 'instansis']);
 
         return view('penyaluran.edit', [
@@ -126,6 +134,8 @@ class PenyaluranController extends Controller
 
     public function update(PerbaruiPenyaluranRequest $request, Penyaluran $penyaluran): RedirectResponse
     {
+        $this->authorize('update', $penyaluran);
+
         $serupa = Penyaluran::serupa(
             $request->validated('tanggal_penyaluran'),
             $request->desaIds(),
@@ -170,6 +180,8 @@ class PenyaluranController extends Controller
      */
     public function destroy(Request $request, Penyaluran $penyaluran): RedirectResponse
     {
+        $this->authorize('delete', $penyaluran);
+
         DB::transaction(function () use ($request, $penyaluran) {
             RiwayatPenyaluran::catat(
                 $penyaluran,

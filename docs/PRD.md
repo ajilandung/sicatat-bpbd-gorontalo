@@ -55,12 +55,12 @@ Sistem digunakan secara internal oleh BPBD Provinsi Gorontalo.
 | Pengguna | Hak Akses / Tugas |
 |---|---|
 | **Admin** | Mengelola seluruh data sistem dan data penyaluran. |
-| **Petugas** | Memberikan data hasil penyaluran kepada admin. Pada MVP belum menjadi fokus input langsung dari lapangan. |
+| **Petugas** | Menginput data hasil penyaluran dari lapangan, dan mengoreksi data yang ia input sendiri. |
 | **Pimpinan** | Melihat dashboard, statistik, riwayat penyaluran, dan laporan. |
 
-**Alur pencatatan saat ini:**
+**Alur pencatatan:**
 
-> Petugas lapangan → memberikan data penyaluran kepada admin → admin menginput data ke sistem → data tersimpan secara terpusat → pimpinan melihat dashboard dan laporan.
+> Petugas lapangan menginput data penyalurannya sendiri ke sistem — atau menyerahkannya kepada admin untuk diinput → data tersimpan secara terpusat → admin memeriksa dan melengkapi seluruh data → pimpinan melihat dashboard dan laporan.
 
 ---
 
@@ -175,7 +175,7 @@ Setiap satu desa memiliki satu data penyaluran. Model input per desa dipilih aga
 
 ### 8.6 Riwayat Penyaluran
 
-Sistem menampilkan seluruh data penyaluran dalam bentuk tabel. Admin dapat menambah, melihat detail, mengubah, dan menghapus data penyaluran.
+Sistem menampilkan seluruh data penyaluran dalam bentuk tabel. Admin dapat menambah, melihat detail, mengubah, dan menghapus data penyaluran. Petugas dapat menambah dan melihat detail seluruh data, tetapi hanya dapat mengubah data yang ia input sendiri dan tidak dapat menghapus.
 
 | Tanggal | Kabupaten | Kecamatan | Desa | KK | Jiwa | Air | Pelaksana |
 |---|---|---|---|---|---|---|---|
@@ -216,9 +216,11 @@ Laporan dapat diekspor ke format:
 
 | Role | Akses |
 |---|---|
-| **Admin** | Dashboard, data pengguna, data wilayah, data instansi, data penyaluran, tambah/edit/hapus data, riwayat, laporan, export PDF dan Excel. |
-| **Petugas** | Pada MVP berperan sebagai sumber data lapangan. Fitur input langsung dapat dikembangkan pada tahap berikutnya. |
+| **Admin** | Dashboard, data pengguna, data wilayah, data instansi, data penyaluran, tambah/edit/hapus seluruh data, riwayat, laporan, export PDF dan Excel. |
+| **Petugas** | Dashboard, melihat seluruh data penyaluran, menambah data penyaluran baru, serta mengubah data dan foto dokumentasi **yang ia input sendiri**. Tidak dapat mengubah data milik pengguna lain, menghapus data, membuka laporan, maupun mengelola pengguna dan master data. |
 | **Pimpinan** | Melihat dashboard, statistik, riwayat penyaluran, dan laporan tanpa mengubah atau menghapus data. |
+
+Batas kepemilikan pada baris Petugas ditegakkan di sisi server lewat `PenyaluranPolicy`, bukan dengan menyembunyikan tombol: membuka atau mengirim perubahan atas data milik pengguna lain — termasuk dengan mengetik URL secara langsung — ditolak dengan galat 403.
 
 ---
 

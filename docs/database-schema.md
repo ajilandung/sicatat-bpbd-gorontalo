@@ -312,7 +312,7 @@ Tabel inti sistem. Memenuhi FR-08 sampai FR-15 dan menjadi sumber seluruh perhit
 |---|---|:---:|---|---|---|
 | `id` | `bigint unsigned` PK | ✗ | auto | — | |
 | `tanggal_penyaluran` | `date` | ✗ | — | Tanggal penyaluran | Tanggal kegiatan terjadi, tanpa jam. Bukan tanggal input |
-| `user_id` | `bigint unsigned` FK | ✗ | — | Petugas yang menginput | → `users.id`, `ON DELETE RESTRICT` |
+| `user_id` | `bigint unsigned` FK | ✗ | — | Pengguna yang menginput — sekaligus **penanda kepemilikan** | → `users.id`, `ON DELETE RESTRICT` |
 | `jumlah_kk` | `int unsigned` | ✓ | `NULL` | Jumlah KK terdampak | FR-11. Boleh kosong |
 | `jumlah_jiwa` | `int unsigned` | ✓ | `NULL` | Jumlah jiwa terdampak | FR-12. Boleh kosong |
 | `volume_liter` | `int unsigned` | ✗ | — | Jumlah air tersalur (liter) | FR-13. Wajib. Selalu liter |
@@ -331,6 +331,8 @@ Tabel inti sistem. Memenuhi FR-08 sampai FR-15 dan menjadi sumber seluruh perhit
 **Angka berlaku untuk seluruh desa pada kegiatan tersebut.** Bila satu kegiatan mencakup empat desa dengan 16.000 liter, angka itu adalah total keempatnya — bukan per desa. Sistem menandai data seperti ini sebagai *angka gabungan* di layar dan di laporan, sehingga pembaca tidak salah menafsirkan.
 
 **Kenapa `int unsigned` untuk `volume_liter`:** batas atasnya sekitar 4,29 miliar liter per baris — jauh di atas kapasitas satu kegiatan (terbesar pada data nyata: 60.000 liter). Hasil `SUM()` otomatis dinaikkan MySQL ke `bigint`, sehingga total lintas tahun tetap aman.
+
+**`user_id` menentukan siapa yang boleh mengoreksi barisnya.** Sejak petugas dapat menginput sendiri, kolom ini bukan lagi sekadar keterangan: petugas hanya boleh mengubah baris yang `user_id`-nya adalah dirinya, sedangkan admin boleh atas seluruh baris. Aturannya diterapkan di `App\Policies\PenyaluranPolicy` (Technical Architecture §5.3), bukan di database — kolomnya sendiri tidak berubah sedikit pun.
 
 **Kenapa soft delete:** PRD memberi admin hak menghapus (FR-10), sementara data ini adalah satu-satunya catatan kegiatan penyaluran. Dengan `deleted_at`, kesalahan hapus masih bisa dipulihkan. Baris terhapus otomatis dikecualikan dari seluruh query, dashboard, dan laporan.
 
