@@ -15,7 +15,7 @@ class AutentikasiTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const VIDEO_LATAR = 'video/latar-login.mp4';
+    private const FOTO_LATAR = 'images/login';
 
     public function test_halaman_login_dapat_diakses_tamu(): void
     {
@@ -35,37 +35,37 @@ class AutentikasiTest extends TestCase
             ->assertDontSee('Facebook', false);
     }
 
-    public function test_panel_identitas_memutar_video_latar_saat_berkasnya_tersedia(): void
+    public function test_panel_identitas_menampilkan_slideshow_foto_dokumentasi(): void
     {
-        $this->assertFileExists(public_path(self::VIDEO_LATAR), 'Berkas video latar login belum tersalin ke public/video.');
+        $foto = glob(public_path(self::FOTO_LATAR.'/*.jpg'));
 
-        $this->get('/login')
-            ->assertOk()
-            ->assertSee('data-video-latar', false)
-            ->assertSee('video/latar-login.mp4', false);
+        $this->assertGreaterThan(1, count($foto), 'Foto dokumentasi login belum tersalin ke public/images/login.');
+
+        $halaman = $this->get('/login')->assertOk()->assertSee('data-slide', false);
+
+        foreach ($foto as $berkas) {
+            $halaman->assertSee('images/login/'.basename($berkas), false);
+        }
     }
 
-    public function test_panel_identitas_memasang_poster_sebelum_video_termuat(): void
+    public function test_hanya_foto_pertama_yang_diunduh_sejak_awal(): void
     {
-        // Tanpa poster, panel sempat gelap kosong selama video diunduh. Poster
-        // dipasang sebagai latar wadahnya, bukan atribut `poster` pada <video>,
-        // supaya tetap terlihat meski videonya sengaja tidak dimuat.
-        $this->assertFileExists(public_path('video/latar-login.jpg'));
-
+        // Foto berikutnya baru terpakai enam detik kemudian, jadi menundanya
+        // menghemat unduhan tanpa pernah terlihat oleh pengguna.
         $this->get('/login')
             ->assertOk()
-            ->assertSee('video/latar-login.jpg', false)
-            ->assertSee('background-image:', false);
+            ->assertSee('loading="lazy"', false);
     }
 
-    public function test_video_latar_menyediakan_kendali_jeda(): void
+    public function test_slideshow_menyediakan_indikator_dan_kendali_jeda(): void
     {
         // WCAG 2.2.2: gerakan yang berjalan sendiri lebih dari lima detik wajib
-        // dapat dihentikan pengguna. Video latar berdurasi 15 detik dan berulang.
+        // dapat dihentikan pengguna. Foto berganti setiap enam detik dan berulang.
         $this->get('/login')
             ->assertOk()
-            ->assertSee('data-kendali-video', false)
-            ->assertSee('Jeda video latar');
+            ->assertSee('data-kendali-slide', false)
+            ->assertSee('data-titik', false)
+            ->assertSee('Jeda pergantian foto');
     }
 
     public function test_tombol_tampilkan_password_dapat_dicapai_papan_ketik(): void
@@ -78,13 +78,13 @@ class AutentikasiTest extends TestCase
             ->assertDontSee('tabindex="-1"', false);
     }
 
-    public function test_halaman_login_tetap_utuh_ketika_berkas_video_tidak_ada(): void
+    public function test_halaman_login_tetap_utuh_ketika_foto_dokumentasi_tidak_ada(): void
     {
-        // Video latar hanya pelengkap. Pada server yang berkas videonya belum
+        // Slideshow hanya pelengkap. Pada server yang foto dokumentasinya belum
         // ikut tersalin, halaman login wajib tetap tampil penuh — bukan berujung
         // galat atau menyisakan permintaan berkas yang gagal.
-        $asli = public_path(self::VIDEO_LATAR);
-        $titipan = $asli.'.titipan-pengujian';
+        $asli = public_path(self::FOTO_LATAR);
+        $titipan = $asli.'-titipan-pengujian';
 
         rename($asli, $titipan);
 
@@ -92,9 +92,9 @@ class AutentikasiTest extends TestCase
             $this->get('/login')
                 ->assertOk()
                 ->assertSee('Masuk ke Sistem')
-                ->assertDontSee('data-video-latar', false)
-                ->assertDontSee('data-kendali-video', false)
-                ->assertDontSee('latar-login.mp4', false);
+                ->assertDontSee('data-slide', false)
+                ->assertDontSee('data-kendali-slide', false)
+                ->assertDontSee('images/login/', false);
         } finally {
             rename($titipan, $asli);
         }

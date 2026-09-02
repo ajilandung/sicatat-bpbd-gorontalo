@@ -14,27 +14,36 @@ class LoginController extends Controller
     public function create(): View
     {
         return view('auth.login', [
-            'videoLatar' => $this->berkasPublik('video/latar-login.mp4'),
-            'posterLatar' => $this->berkasPublik('video/latar-login.jpg'),
+            'slides' => $this->slidesLatar(),
         ]);
     }
 
     /**
-     * URL sebuah berkas di direktori publik, atau null bila berkasnya tidak ada.
+     * URL foto dokumentasi untuk slideshow panel identitas.
      *
-     * Video latar panel identitas bersifat pelengkap. Bila berkasnya belum
-     * disalin ke server, halaman login harus tetap tampil utuh dengan panel
-     * navy polos seperti sedia kala, bukan menyisakan permintaan yang gagal.
-     * Cap waktu berkas ditempelkan supaya penggantian video langsung terlihat
-     * tanpa pengguna perlu mengosongkan cache peramban.
+     * Isinya dibaca langsung dari direktori, bukan didaftar satu per satu di
+     * kode: menambah atau mengganti foto cukup dengan menaruh berkas baru di
+     * `public/images/login/`, tanpa menyentuh controller. Urutannya mengikuti
+     * nama berkas supaya tampilannya tetap sama setiap kali halaman dibuka.
+     *
+     * Slideshow ini pelengkap. Bila direktorinya kosong — misalnya berkas foto
+     * belum ikut tersalin ke server — halaman login tetap tampil utuh dengan
+     * panel navy berornamen seperti sedia kala, bukan menyisakan permintaan
+     * gambar yang gagal. Cap waktu berkas ditempelkan agar penggantian foto
+     * langsung terlihat tanpa pengguna perlu mengosongkan cache peramban.
+     *
+     * @return list<string>
      */
-    private function berkasPublik(string $relatif): ?string
+    private function slidesLatar(): array
     {
-        $absolut = public_path($relatif);
+        $berkas = glob(public_path('images/login/*.jpg')) ?: [];
 
-        return file_exists($absolut)
-            ? asset($relatif).'?v='.filemtime($absolut)
-            : null;
+        sort($berkas);
+
+        return array_map(
+            fn (string $absolut) => asset('images/login/'.basename($absolut)).'?v='.filemtime($absolut),
+            $berkas,
+        );
     }
 
     public function store(LoginRequest $request): RedirectResponse

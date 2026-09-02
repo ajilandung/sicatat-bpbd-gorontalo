@@ -130,102 +130,110 @@
 
 /*
 | ─────────────────────────────────────────────────────────────────────────────
-| Video latar panel identitas halaman login
+| Slideshow foto latar panel identitas halaman login
 | ─────────────────────────────────────────────────────────────────────────────
 |
-| Video di sini berperan sebagai suasana, bukan tontonan. Karena itu ia masuk
-| dengan pudar setelah frame pertama siap agar tidak menyentak, digeser sangat
-| lambat supaya panel terasa hidup tanpa menarik mata dari form, dan warnanya
-| dinaikkan sedikit agar tidak terlihat pucat di balik tirai navy.
+| Foto di sini berperan sebagai suasana, bukan tontonan. Seluruh foto ditumpuk
+| pada posisi yang sama dan hanya yang bertanda `is-aktif` yang terlihat, jadi
+| pergantiannya berupa silang-pudar tanpa pernah menggeser tata letak panel.
+| Durasinya sengaja panjang — 1,4 detik dengan jeda enam detik antar foto —
+| supaya panel terasa hidup tanpa menarik mata dari form di sebelahnya.
 |
-| Bagi pengguna yang meminta animasi dikurangi, gerakannya dihentikan penuh.
-| Skrip di halaman login bahkan tidak mengunduh videonya sama sekali; aturan di
-| bawah hanya pengaman lapis kedua.
+| Bagi pengguna yang meminta animasi dikurangi, pergantian otomatis tidak
+| pernah dimulai oleh skrip halaman login; aturan di bawah hanya pengaman lapis
+| kedua agar perpindahan lewat titik indikator pun tidak ikut memudar.
 */
-.video-latar {
+.slide-latar {
+    position: absolute;
+    inset: 0;
     opacity: 0;
-    filter: saturate(1.08) contrast(1.05) brightness(0.95);
-    transform: scale(1.06);
-    animation: video-latar-hanyut 60s ease-in-out infinite alternate;
-    transition: opacity 1.2s ease-out;
+    filter: saturate(1.05) contrast(1.03) brightness(0.95);
+    transition: opacity 1.4s ease-in-out;
 }
 
-/* Ditandai oleh skrip begitu frame pertama benar-benar siap digambar. */
-.video-latar[data-siap] {
+.slide-latar.is-aktif {
     opacity: 1;
 }
 
-@keyframes video-latar-hanyut {
-    from {
-        transform: scale(1.06) translate3d(0, 0, 0);
-    }
-    to {
-        transform: scale(1.13) translate3d(-1.5%, -1%, 0);
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .video-latar {
-        animation: none;
+    .slide-latar {
         transition: none;
     }
 }
 
 /*
-| Tirai di atas video latar login.
+| Tirai di atas foto latar login.
 |
-| Videonya bukan stok pemandangan, melainkan dokumentasi penyaluran yang
+| Fotonya bukan stok pemandangan, melainkan dokumentasi penyaluran yang
 | sesungguhnya — mobil tangki berlogo BPBD, petugas berseragam, warga mengantre
 | dengan wadah. Menutupinya dengan veil rata yang pekat akan menghapus satu-
-| satunya alasan video itu dipasang.
+| satunya alasan foto itu dipasang.
 |
 | Karena itu tirainya berarah, bukan rata: pekat di sisi kiri tempat seluruh
 | teks panel berdiri, lalu menipis ke kanan supaya gambarnya terbaca. Sisi kanan
 | yang menipis sampai 0,50 tidak memuat teks apa pun; yang ada di sana hanya
-| tombol jeda, dan tombol itu membawa latarnya sendiri.
+| titik indikator dan tombol jeda, dan tombol itu membawa latarnya sendiri.
 |
-| Angkanya bukan selera. Nilai di bawah diuji dengan mencuplik 30 frame dari
-| rekaman yang dipakai, memotongnya persis seperti `object-cover` pada panel
-| 998x1080, lalu mencari kontras terburuk di seluruh area teks. Hasilnya —
-| latar terburuk yang pernah muncul adalah #2f3c46:
+| Angkanya bukan selera. Nilai di bawah diuji dengan memotong ketiga foto persis
+| seperti `object-cover` pada panel 960x1080, menerapkan `filter` di atas, lalu
+| mencari piksel paling terang di seluruh area teks. Latar terburuk yang muncul
+| adalah #353f4a — dinding rumah yang tersorot matahari pada `penyaluran-2.jpg`:
 |
-|     judul putih             11,32:1
-|     navy-200 uraian & poin   7,55:1
-|     air-300 ikon centang     6,79:1
-|     air-400 label            5,28:1
-|     navy-300 catatan kaki    5,27:1
+|     judul putih             10,58:1
+|     navy-200 uraian & poin   7,06:1
+|     air-300 ikon centang     6,35:1
+|     air-400 label            4,94:1  ← margin paling tipis
+|     navy-300 catatan kaki    4,93:1  ← margin paling tipis
 |
-| Kelimanya di atas ambang WCAG AA 4,5:1. Yang paling tipis marginnya adalah
-| `navy-300` dan `air-400` yang praktis seri, jadi bila suatu saat tirai ini
-| dibuat lebih terang atau videonya diganti dengan rekaman yang lebih benderang,
-| catatan kaki dan label itulah yang pertama jatuh dan pengukurannya perlu
-| diulang.
+| Kelimanya di atas ambang WCAG AA 4,5:1. Foto dokumentasi diambil siang hari di
+| lapangan sehingga jauh lebih benderang daripada video yang dipakai sebelumnya;
+| karena itu tirainya dinaikkan dari 0,88 ke 0,91. Bila foto diganti lagi atau
+| tirai ini dibuat lebih terang, label dan catatan kaki itulah yang pertama
+| jatuh dan pengukurannya perlu diulang.
 */
-.tirai-video {
+.tirai-slide {
     background-image: linear-gradient(
         to right,
-        rgb(11 24 38 / 0.88) 0%,
-        rgb(11 24 38 / 0.86) 60%,
-        rgb(11 24 38 / 0.72) 80%,
-        rgb(11 24 38 / 0.5) 100%
+        rgb(11 24 38 / 0.91) 0%,
+        rgb(11 24 38 / 0.90) 60%,
+        rgb(11 24 38 / 0.76) 80%,
+        rgb(11 24 38 / 0.52) 100%
     );
 }
 
 /*
-| Tombol jeda video latar login.
+| Indikator dan tombol jeda slideshow login.
 |
 | Disembunyikan sejak awal dan baru ditampilkan oleh skrip halaman login ketika
-| videonya benar-benar jadi diputar — pada layar kecil atau saat pengguna
-| meminta animasi dikurangi, video tidak pernah dimuat sehingga kendali ini pun
-| tidak perlu ada. Pemilih memakai atribut agar selalu menang atas kelas utilitas
-| tata letak yang menempel pada tombol yang sama.
+| slideshow-nya benar-benar berjalan — bila foto dokumentasi hanya ada satu,
+| tidak ada yang perlu ditunjuk maupun dijeda. Pemilih memakai atribut agar
+| selalu menang atas kelas utilitas tata letak yang menempel pada elemen sama.
 */
-.kendali-video {
+.kendali-slide {
     display: none;
 }
 
-.kendali-video[data-aktif] {
-    display: inline-flex;
+.kendali-slide[data-aktif] {
+    display: flex;
+}
+
+/*
+| Titik penunjuk foto. Yang sedang tampil memanjang menjadi kapsul biru air,
+| sehingga posisinya terbaca dari bentuk — bukan dari warna saja (WCAG 1.4.1).
+*/
+.titik-slide {
+    width: 0.625rem;
+    background-color: rgb(255 255 255 / 0.35);
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.titik-slide:hover {
+    background-color: rgb(255 255 255 / 0.6);
+}
+
+.titik-slide.is-aktif {
+    width: 1.5rem;
+    background-color: var(--color-air-400);
 }
 
 /*

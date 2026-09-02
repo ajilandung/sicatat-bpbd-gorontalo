@@ -7,51 +7,72 @@
     <title>Masuk — Sicatat</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="h-full bg-white text-slate-700 antialiased">
+<body class="h-full bg-permukaan text-slate-700 antialiased">
 
 <div class="flex min-h-full flex-col lg:flex-row">
 
-    {{-- ── Panel identitas. Disembunyikan pada layar kecil agar form tetap lapang. ── --}}
-    <aside class="relative hidden shrink-0 flex-col justify-between overflow-hidden bg-navy-900 px-12 py-14 lg:flex lg:w-[52%] xl:px-16">
-        @if ($videoLatar)
+    {{--
+        ── Panel identitas ──────────────────────────────────────────────────
+        Di layar besar panel ini mengisi separuh kiri layar. Di ponsel ia
+        menyusut menjadi kop setinggi logo saja: fotonya tetap ada sebagai
+        suasana, tetapi tidak mendorong form masuk turun sampai perlu digulir.
+    --}}
+    <aside class="relative flex shrink-0 flex-col justify-between overflow-hidden bg-navy-900 px-6 py-5
+                  lg:w-1/2 lg:px-12 lg:py-14 xl:px-16">
+        @if ($slides)
             {{--
-                Video suasana kegiatan penyaluran, di lapisan paling bawah panel.
-                Sumbernya sengaja disimpan pada `data-src`, bukan `src`: berkas baru
-                diunduh oleh skrip di bawah halaman setelah dipastikan panel ini
-                memang tampil dan pengguna tidak meminta animasi dikurangi.
+                Slideshow foto dokumentasi kegiatan penyaluran, di lapisan
+                paling bawah panel. Seluruh foto ditumpuk pada posisi yang sama
+                lalu bergantian dengan pudar; hanya foto pertama yang diunduh
+                sejak awal, sisanya menyusul saat dibutuhkan.
             --}}
-            <div class="pointer-events-none absolute inset-0 bg-navy-900 bg-cover bg-center"
-                 @if ($posterLatar) style="background-image: url('{{ $posterLatar }}')" @endif>
-                <video class="video-latar size-full object-cover" data-video-latar
-                       muted loop playsinline preload="none" aria-hidden="true">
-                    <source data-src="{{ $videoLatar }}" type="video/mp4">
-                </video>
+            <div class="pointer-events-none absolute inset-0 bg-navy-950" aria-hidden="true">
+                @foreach ($slides as $nomor => $slide)
+                    <img src="{{ $slide }}" alt="" data-slide
+                         @class(['slide-latar size-full object-cover', 'is-aktif' => $nomor === 0])
+                         @if ($nomor > 0) loading="lazy" @endif>
+                @endforeach
             </div>
 
             {{-- Tirai berarah; angkanya dijelaskan di `resources/css/app.css`. --}}
-            <div class="tirai-video pointer-events-none absolute inset-0"></div>
+            <div class="tirai-slide pointer-events-none absolute inset-0"></div>
 
             {{--
-                WCAG 2.2.2 (Pause, Stop, Hide): gerakan yang berjalan sendiri
-                lebih dari lima detik wajib bisa dihentikan pengguna. Tombol ini
-                disembunyikan sampai skrip memastikan videonya memang diputar,
-                supaya tidak pernah ada kendali yang menganggur.
+                Indikator sekaligus kendali. Titiknya menunjukkan foto keberapa
+                yang sedang tampil dan bisa ditekan untuk melompat; tombol di
+                sebelahnya menghentikan pergantian otomatis — WCAG 2.2.2
+                mewajibkan gerakan yang berjalan sendiri lebih dari lima detik
+                dapat dihentikan pengguna. Keduanya baru ditampilkan oleh skrip
+                di bawah halaman ketika slideshow-nya memang berjalan.
             --}}
-            <button type="button" data-kendali-video aria-label="Jeda video latar"
-                    class="kendali-video absolute bottom-14 right-12 size-11 items-center justify-center rounded-full
-                           border border-white/15 bg-navy-950/60 text-navy-100 backdrop-blur-sm transition-colors
-                           hover:border-white/30 hover:bg-navy-950/85 hover:text-white
-                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500
-                           focus-visible:ring-offset-2 focus-visible:ring-offset-navy-950 xl:right-16">
-                <x-ikon nama="jeda" class="size-[18px]" data-ikon-jeda/>
-                <x-ikon nama="putar" class="size-[18px]" data-ikon-putar hidden/>
-            </button>
+            <div class="kendali-slide absolute bottom-4 right-6 items-center gap-4 lg:bottom-14 lg:right-12 xl:right-16"
+                 data-kendali-slide>
+                <div class="flex items-center gap-2" role="tablist" aria-label="Pilih foto">
+                    @foreach ($slides as $nomor => $slide)
+                        <button type="button" data-titik role="tab"
+                                aria-label="Foto {{ $nomor + 1 }}" aria-selected="{{ $nomor === 0 ? 'true' : 'false' }}"
+                                @class(['titik-slide size-2.5 rounded-full transition-colors focus-visible:outline-none
+                                         focus-visible:ring-2 focus-visible:ring-air-400 focus-visible:ring-offset-2
+                                         focus-visible:ring-offset-navy-950', 'is-aktif' => $nomor === 0])></button>
+                    @endforeach
+                </div>
+
+                <button type="button" data-jeda-slide aria-label="Jeda pergantian foto"
+                        class="flex size-9 items-center justify-center rounded-full border border-white/15
+                               bg-navy-950/60 text-navy-100 backdrop-blur-sm transition-colors
+                               hover:border-white/30 hover:bg-navy-950/85 hover:text-white
+                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-air-500
+                               focus-visible:ring-offset-2 focus-visible:ring-offset-navy-950 lg:size-11">
+                    <x-ikon nama="jeda" class="size-[18px]" data-ikon-jeda/>
+                    <x-ikon nama="putar" class="size-[18px]" data-ikon-putar hidden/>
+                </button>
+            </div>
         @else
             {{--
-                Ornamen pengganti, hanya saat tidak ada video. Ketika video ada,
-                gambar kegiatan yang sesungguhnya sudah mengisi panel ini — cahaya
-                dan garis air di bawah justru menumpuk di atasnya tanpa menambah
-                makna, jadi keduanya ditiadakan.
+                Ornamen pengganti, hanya saat foto dokumentasi tidak ada. Ketika
+                fotonya ada, gambar kegiatan yang sesungguhnya sudah mengisi
+                panel ini — cahaya dan garis air di bawah justru menumpuk di
+                atasnya tanpa menambah makna, jadi keduanya ditiadakan.
             --}}
 
             {{-- Cahaya biru air yang tipis sebagai kedalaman, bukan hiasan. --}}
@@ -66,18 +87,18 @@
             </svg>
         @endif
 
-        {{-- Pita biru di tepi panel; air-500 dipilih agar tetap terbaca di atas navy. --}}
-        <div class="absolute inset-y-0 right-0 w-1.5 bg-air-500"></div>
+        {{-- Pita biru pembatas panel: di bawah pada ponsel, di tepi kanan pada layar besar. --}}
+        <div class="absolute bottom-0 left-0 right-0 h-1.5 bg-air-500 lg:left-auto lg:top-0 lg:h-auto lg:w-1.5"></div>
 
         <div class="relative flex items-center gap-3.5">
-            <x-ui.logo ukuran="size-12"/>
+            <x-ui.logo ukuran="size-10 lg:size-12"/>
             <div>
-                <p class="text-lg font-semibold tracking-tight text-white">Sicatat</p>
-                <p class="text-sm text-navy-300">BPBD Provinsi Gorontalo</p>
+                <p class="font-semibold tracking-tight text-white lg:text-lg">Sicatat</p>
+                <p class="text-xs text-navy-300 lg:text-sm">BPBD Provinsi Gorontalo</p>
             </div>
         </div>
 
-        <div class="relative max-w-xl">
+        <div class="relative hidden max-w-xl lg:block">
             <p class="text-xs font-semibold uppercase tracking-[0.2em] text-air-400">Sistem Internal</p>
 
             <h2 class="mt-4 text-[2rem] font-semibold leading-[1.15] tracking-tight text-white xl:text-4xl">
@@ -105,25 +126,14 @@
             </ul>
         </div>
 
-        <p class="relative text-xs leading-relaxed text-navy-300">
+        <p class="relative hidden text-xs leading-relaxed text-navy-300 lg:block">
             Sistem internal BPBD Provinsi Gorontalo.<br>
             Akun dibuat oleh administrator, bukan melalui pendaftaran mandiri.
         </p>
     </aside>
 
     {{-- ── Form masuk ── --}}
-    <main class="flex flex-1 flex-col">
-        {{-- Kop ringkas khusus layar kecil, menggantikan panel identitas. --}}
-        <div class="border-b-2 border-air-500 bg-navy-900 px-6 py-4 lg:hidden">
-            <div class="flex items-center gap-3">
-                <x-ui.logo ukuran="size-10"/>
-                <div>
-                    <p class="font-semibold tracking-tight text-white">Sicatat</p>
-                    <p class="text-xs text-navy-300">BPBD Provinsi Gorontalo</p>
-                </div>
-            </div>
-        </div>
-
+    <main class="flex flex-1 flex-col bg-white">
         <div class="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
             <div class="w-full max-w-[25rem]">
 
@@ -186,68 +196,90 @@
     </main>
 </div>
 
-@if ($videoLatar)
+@if (count($slides) > 1)
     <script>
         (() => {
-            const video = document.querySelector('[data-video-latar]');
-            const kendali = document.querySelector('[data-kendali-video]');
+            const foto = [...document.querySelectorAll('[data-slide]')];
+            const titik = [...document.querySelectorAll('[data-titik]')];
+            const kendali = document.querySelector('[data-kendali-slide]');
+            const jeda = document.querySelector('[data-jeda-slide]');
 
-            if (! video || ! kendali) return;
+            if (foto.length < 2 || ! kendali || ! jeda) return;
 
-            // Video baru diunduh bila panel identitas benar-benar tampil (lebar `lg`
-            // ke atas) dan pengguna tidak meminta animasi dikurangi. Petugas yang
-            // membuka Sicatat dari ponsel tidak ikut menanggung ongkos kuotanya.
-            const layakDiputar = window.matchMedia('(min-width: 64rem)').matches
-                && ! window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const JEDA_ANTAR_FOTO = 6000;
 
-            if (! layakDiputar) return;
+            let indeks = 0;
+            let jam = null;
 
-            // Muncul perlahan setelah frame pertama siap, supaya tidak menyentak.
-            video.addEventListener('loadeddata', () => video.dataset.siap = '', { once: true });
-
-            video.querySelectorAll('source[data-src]').forEach(sumber => sumber.src = sumber.dataset.src);
-            video.load();
-
-            // Sebagian peramban tetap menolak autoplay; poster yang sudah terpasang
-            // sebagai latar tetap tampil, jadi penolakan ini tidak perlu dilaporkan.
-            video.play().catch(() => {});
-
-            // ── Kendali jeda ──────────────────────────────────────────────────
-            const ikonJeda = kendali.querySelector('[data-ikon-jeda]');
-            const ikonPutar = kendali.querySelector('[data-ikon-putar]');
-
-            const perbaruiKendali = () => {
-                const berjalan = ! video.paused;
-
-                ikonJeda.hidden = ! berjalan;
-                ikonPutar.hidden = berjalan;
-                kendali.setAttribute('aria-label', berjalan ? 'Jeda video latar' : 'Putar video latar');
-            };
-
-            // Dibedakan dari jeda otomatis di bawah: pilihan pengguna untuk
-            // menghentikan video tidak boleh dibatalkan diam-diam oleh sistem.
+            // Dibedakan dari jeda otomatis saat tab ditinggalkan: pilihan pengguna
+            // untuk menghentikan slideshow tidak boleh dibatalkan diam-diam.
             let dijedaPengguna = false;
 
-            kendali.addEventListener('click', () => {
-                dijedaPengguna = ! video.paused;
+            const tampilkan = (nomor) => {
+                indeks = (nomor + foto.length) % foto.length;
 
-                dijedaPengguna ? video.pause() : video.play().catch(() => {});
+                foto.forEach((gambar, n) => gambar.classList.toggle('is-aktif', n === indeks));
+                titik.forEach((tombol, n) => {
+                    tombol.classList.toggle('is-aktif', n === indeks);
+                    tombol.setAttribute('aria-selected', n === indeks ? 'true' : 'false');
+                });
+            };
+
+            const perbaruiTombol = () => {
+                jeda.querySelector('[data-ikon-jeda]').hidden = ! jam;
+                jeda.querySelector('[data-ikon-putar]').hidden = !! jam;
+                jeda.setAttribute('aria-label', jam ? 'Jeda pergantian foto' : 'Lanjutkan pergantian foto');
+            };
+
+            const berhenti = () => {
+                clearInterval(jam);
+                jam = null;
+                perbaruiTombol();
+            };
+
+            const berjalan = () => {
+                clearInterval(jam);
+                jam = setInterval(() => tampilkan(indeks + 1), JEDA_ANTAR_FOTO);
+                perbaruiTombol();
+            };
+
+            // Menekan titik berarti pengguna memilih sendiri fotonya. Hitungan
+            // diulang dari nol supaya foto pilihannya tidak langsung tergeser oleh
+            // sisa hitungan yang sedang berjalan — kecuali slideshow memang sedang
+            // dijeda, yang berarti pengguna ingin diam di satu foto.
+            titik.forEach((tombol, n) => tombol.addEventListener('click', () => {
+                tampilkan(n);
+
+                if (! dijedaPengguna) berjalan();
+            }));
+
+            jeda.addEventListener('click', () => {
+                dijedaPengguna = !! jam;
+
+                dijedaPengguna ? berhenti() : berjalan();
             });
 
-            video.addEventListener('play', perbaruiKendali);
-            video.addEventListener('pause', perbaruiKendali);
-
-            kendali.dataset.aktif = '';
-            perbaruiKendali();
-
-            // Tab yang sedang tidak dilihat tidak perlu memutar apa pun.
+            // Tab yang sedang tidak dilihat tidak perlu mengganti apa pun.
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
-                    video.pause();
+                    clearInterval(jam);
+                    jam = null;
                 } else if (! dijedaPengguna) {
-                    video.play().catch(() => {});
+                    berjalan();
                 }
             });
+
+            kendali.dataset.aktif = '';
+            tampilkan(0);
+
+            // Pengguna yang meminta animasi dikurangi tetap mendapat seluruh foto
+            // lewat titik indikator, hanya saja tidak ada yang berganti sendiri.
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                dijedaPengguna = true;
+                berhenti();
+            } else {
+                berjalan();
+            }
         })();
     </script>
 @endif
