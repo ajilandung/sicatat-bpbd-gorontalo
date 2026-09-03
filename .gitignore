@@ -14,7 +14,9 @@
 /.zed
 /auth.json
 /node_modules
-/public/build
+# /public/build — sengaja TIDAK diabaikan. Hosting Hostinger tidak menjalankan
+# `npm run build`, jadi hasil kompilasi Vite harus ikut ke dalam repositori
+# supaya tampilan tidak hilang setelah di-deploy. Sama alasannya dengan vendor/.
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
@@ -26,8 +28,12 @@
 # supaya tetap terjaga bila berkas bawaan itu tersapu saat pembaruan kerangka
 # kerja — foto lapangan tidak boleh ikut terunggah ke repositori.
 /storage/app/private/dokumentasi
-/vendor
 _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Berkas kemasan hasil buat-deploy.bat. Dibuat ulang kapan saja dari kode yang
+# ada, jadi tidak perlu menumpang di repositori.
+/sicatat-deploy.zip
+/build.zip
